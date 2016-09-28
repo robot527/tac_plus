@@ -630,8 +630,3 @@ A). Wtmp file logging is supported. The "-u <wtmpfilename>" command
 	aaa accounting exec stop-only tacacs+
 	aaa accounting network stop-only tacacs+
 	aaa accounting system start-stop tacacs+
-
-Q) How does TACACS compare to RADIUS?
-A) Cisco provided a good summary in general and somewhat specific to Cisco
-   products here:
-   http://www.cisco.com/en/US/tech/tk59/technologies_tech_note09186a0080094e99.shtml#comparing

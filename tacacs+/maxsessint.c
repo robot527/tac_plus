@@ -48,7 +48,6 @@ is_async(char *portname)
 /*
  * See if this user can have more sessions.
  */
-#ifdef MAXSESS
 int
 maxsess_check_count(char *user, struct author_data *data)
 {
@@ -58,11 +57,7 @@ maxsess_check_count(char *user, struct author_data *data)
     /* No max session configured--don't check */
     id = data->id;
 
-#if MAXSESS
     maxsess = cfg_get_intvalue(user, TAC_IS_USER, S_maxsess, TAC_PLUS_RECURSE);
-#else
-    maxsess = 0;
-#endif
     if (!maxsess) {
 	if (debug & (DEBUG_MAXSESS_FLAG | DEBUG_AUTHOR_FLAG)) {
 	    report(LOG_DEBUG, "%s may run an unlimited number of sessions",
@@ -92,8 +87,9 @@ maxsess_check_count(char *user, struct author_data *data)
     if (sess >= maxsess) {
 	char buf[80];
 
-	snprintf(buf, sizeof(buf),
-		"Login failed; too many active sessions (%d maximum)", maxsess);
+	sprintf(buf,
+		"Login failed; too many active sessions (%d maximum)",
+		maxsess);
 
 	data->msg = tac_strdup(buf);
 
@@ -107,4 +103,3 @@ maxsess_check_count(char *user, struct author_data *data)
     }
     return(0);
 }
-#endif

@@ -5,9 +5,6 @@
 #define CONFIG_H        1
 
 
-/* define this to include support for RSA SecurID */
-#undef ACECLNT
-
 /* define this to include ACL support */
 #undef ACLS
 
@@ -72,9 +69,6 @@
 /* Define if you have POSIX threads libraries and header files. */
 #undef HAVE_PTHREAD
 
-/* Define to 1 if you have the `random' function. */
-#undef HAVE_RANDOM
-
 /* Define to 1 if you have the <shadow.h> header file. */
 #undef HAVE_SHADOW_H
 
@@ -134,12 +128,6 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* Define to 1 if you have the <utmpx.h> header file. */
-#undef HAVE_UTMPX_H
-
-/* Define to 1 if you have the <utmp.h> header file. */
-#undef HAVE_UTMP_H
 
 /* Define to 1 if you have the `wait3' function. */
 #undef HAVE_WAIT3

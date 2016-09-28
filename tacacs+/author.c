@@ -43,7 +43,7 @@ author(u_char *pak)
 	report(LOG_DEBUG, "Start authorization request");
 
     hdr = (HDR *)pak;
-    apak = (struct author *)(pak + TAC_PLUS_HDR_SIZE);
+    apak = (struct author *) (pak + TAC_PLUS_HDR_SIZE);
 
     /* Do some sanity checks */
     if (hdr->seq_no != 1) {
@@ -51,32 +51,12 @@ author(u_char *pak)
 	return;
     }
 
-    /* Check if there's at least sizeof(struct author) of useful data */
-    if (ntohl(hdr->datalength) < TAC_AUTHOR_REQ_FIXED_FIELDS_SIZE) {
-	report(LOG_ERR, "%s: author minimum payload length: %zu, got: %u",
-	       session.peer, TAC_AUTHOR_REQ_FIXED_FIELDS_SIZE,
-	       ntohl(hdr->datalength));
-	send_error_reply(TAC_PLUS_AUTHOR, NULL);
-	return;
-    }
-  
     /* arg counts start here */
     p = pak + TAC_PLUS_HDR_SIZE + TAC_AUTHOR_REQ_FIXED_FIELDS_SIZE;
 
     /* Length checks */
     len = TAC_AUTHOR_REQ_FIXED_FIELDS_SIZE;
     len += apak->user_len + apak->port_len + apak->rem_addr_len + apak->arg_cnt;
-  
-    /* Is there enough space for apak->arg_cnt arguments? */
-    if (ntohl(hdr->datalength) <
-	(TAC_AUTHOR_REQ_FIXED_FIELDS_SIZE + apak->arg_cnt)) {
-	report(LOG_ERR, "%s: author minimum payload length: %zu, got: %u",
-	       session.peer, TAC_AUTHOR_REQ_FIXED_FIELDS_SIZE + apak->arg_cnt,
-	       ntohl(hdr->datalength));
-	send_error_reply(TAC_PLUS_AUTHOR, NULL);
-	return;
-    }
-
     for (i = 0; i < (int)apak->arg_cnt; i++) {
 	len += p[i];
     }
@@ -100,7 +80,7 @@ author(u_char *pak)
 
     /* zero out identity struct */
     memset(&identity, 0, sizeof(struct identity));
-    identity.username = tac_make_string(p, (int)apak->user_len);
+    identity.username = tac_make_string(p, (int) apak->user_len);
     p += apak->user_len;
 
     identity.NAS_name = tac_strdup(session.peer);
@@ -132,7 +112,7 @@ author(u_char *pak)
     author_data.num_in_args = apak->arg_cnt;
 
     /* Space for args + NULL */
-    cmd_argp = (char **)tac_malloc(apak->arg_cnt * sizeof(char *));
+    cmd_argp = (char **) tac_malloc(apak->arg_cnt * sizeof(char *));
 
     /* p points to the start of args. Step thru them making strings */
     for (i = 0; i < (int)apak->arg_cnt; i++) {

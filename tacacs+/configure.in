@@ -335,48 +335,6 @@ AC_SUBST(SKEY)
 AM_CONDITIONAL([TACSKEY], [test "${with_skey}" != "no"])
 
 dnl
-dnl aceclnt - aka RSA SecurID
-dnl
-AC_MSG_CHECKING([whether to include RSA SecurID support])
-AH_TEMPLATE(ACECLNT, [define this to include support for RSA SecurID])
-AC_ARG_WITH(aceclnt,
-	[AS_HELP_STRING([--with-aceclnt[[=PATH]]],[libaceclnt (RSA SecurID) support. PATH is dir above lib, eg: /usr/local])],
-[ case "$withval" in
-  no)
-    AC_MSG_RESULT(no)
-    ;;
-  yes)
-    AC_MSG_RESULT(yes)
-    AC_DEFINE(ACECLNT)
-    AC_SEARCH_LIBS([SD_Init], [aceclnt],
-        [ ],
-        [AC_MSG_ERROR(Could not find libaceclnt.  You must first install aceclnt or provide a hint to the location of library and includes, as in --with-aceclnt=/usr/local)])
-    ;;
-  *)
-    AC_MSG_RESULT(yes)
-    AC_DEFINE(ACECLNT)
-    if test -d "$withval" ; then
-	LDFAGS="$LDFLAGS -L$withval/lib"
-        CFLAGS="$CFLAGS -I$withval/include"
-        AC_SEARCH_LIBS([SD_Init], [aceclnt],
-            [ ],
-            [AC_MSG_ERROR([Could not find libaceclnt.])
-	])
-    else
-        AC_SEARCH_LIBS([SD_Init], [$withval],
-            [ ],
-            [AC_MSG_ERROR([Could not find lib$withval.])
-	])
-    fi
-    ;;
-  esac ],
-  AC_MSG_RESULT(no)
-  with_aceclnt="no"
-)
-AC_SUBST(ACECLNT)
-AM_CONDITIONAL([TACACECLNT], [test "${with_aceclnt}" != "no"])
-
-dnl
 dnl		XXX: might be good to have these as config file options
 dnl		     or just options for running scripts
 dnl userid - aka TACPLUS_USERID
@@ -736,7 +694,7 @@ AC_HEADER_TIME
 AC_CHECK_HEADERS(crypt.h ctype.h errno.h fcntl.h malloc.h shadow.h stdlib.h \
 		stdint.h string.h strings.h sys/resource.h sys/socket.h \
 		sys/types.h sys/wait.h sysexits.h syslog.h termios.h unistd.h \
-		utmp.h utmpx.h wait.h)
+		wait.h)
 
 AH_TEMPLATE([SHADOW_PASSWORDS],
 	    [define if your system has a shadow password file])
@@ -766,8 +724,8 @@ AC_CHECK_TYPES([pid_t], [], [], [#if HAVE_SYS_TYPES_H
 #endif])
 
 # check functions
-AC_CHECK_FUNCS([getdtablesize memcpy memset random strchr strcspn strerror \
-		strrchr wait3 wait4 waitpid])
+AC_CHECK_FUNCS([getdtablesize memcpy memset strchr strcspn strerror strrchr \
+	        wait3 wait4 waitpid])
 AC_FUNC_SETPGRP
 
 # Is the wait(2) status an int or union

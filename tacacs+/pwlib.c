@@ -32,11 +32,7 @@
 
 #if HAVE_PAM
 # ifdef __APPLE__	/* MacOS X */
-#  if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060
-#   include <security/pam_appl.h>
-#  else
-#   include <pam/pam_appl.h>
-#  endif
+#  include <pam/pam_appl.h>
 # else
 #  include <security/pam_appl.h>
 # endif
@@ -54,8 +50,6 @@ static int pam_verify(char *, char *);
 #endif
 static int passwd_file_verify(char *, char *, struct authen_data *, char *);
 
-extern char *progname;
-
 /* Adjust data->status depending on whether a user has expired or not */
 void
 set_expiration_status(char *exp_date, struct authen_data *data)
@@ -67,10 +61,8 @@ set_expiration_status(char *exp_date, struct authen_data *data)
 	return;
     }
 
-    /*
-     * Check the expiration date, if any. If NULL, this check will return
-     * PW_OK
-     */
+    /* Check the expiration date, if any. If NULL, this check will return
+     * PW_OK */
     expired = check_expiration(exp_date);
 
     switch (expired) {
@@ -80,7 +72,7 @@ set_expiration_status(char *exp_date, struct authen_data *data)
 		   exp_date ? exp_date : "<no expiry date set>");
 
 	data->status = TAC_PLUS_AUTHEN_STATUS_PASS;
-	break;
+	return;
 
     case PW_EXPIRING:
 	if (debug & DEBUG_PASSWD_FLAG)
@@ -90,7 +82,7 @@ set_expiration_status(char *exp_date, struct authen_data *data)
 	    free(data->server_msg);
 	data->server_msg = tac_strdup("Password will expire soon");
 	data->status = TAC_PLUS_AUTHEN_STATUS_PASS;
-	break;
+	return;
 
     case PW_EXPIRED:
 	if (debug & DEBUG_PASSWD_FLAG)
@@ -100,15 +92,16 @@ set_expiration_status(char *exp_date, struct authen_data *data)
 	    free(data->server_msg);
 	data->server_msg = tac_strdup("Password has expired");
 	data->status = TAC_PLUS_AUTHEN_STATUS_FAIL;
-	break;
+	return;
 
     default:
 	report(LOG_ERR, "%s: Bogus return value %d from check_expiration",
 	       session.peer, expired);
 	data->status = TAC_PLUS_AUTHEN_STATUS_ERROR;
-	break;
+	return;
     }
 
+    /*NOTREACHED*/
     return;
 }
 
@@ -133,7 +126,7 @@ verify(char *name, char *passwd, struct authen_data *data, int recurse)
      * If there is no login or pap password for this user, see if there is
      * a global password that can be used.
      */
-    if (cfg_passwd == NULL) {
+    if (!cfg_passwd) {
 	cfg_passwd = cfg_get_global_secret(name, recurse);
     }
 
@@ -142,7 +135,7 @@ verify(char *name, char *passwd, struct authen_data *data, int recurse)
      * matter) but the default authentication = file <file> statement
      * has been issued, attempt to use this password file
      */
-    if (cfg_passwd == NULL) {
+    if (!cfg_passwd) {
 	char *file = cfg_get_authen_default();
 	if (file) {
 	    return(passwd_file_verify(name, passwd, data, file));
@@ -170,7 +163,7 @@ verify(char *name, char *passwd, struct authen_data *data, int recurse)
 #endif
 
     p = tac_find_substring("cleartext ", cfg_passwd);
-    if (p != NULL) {
+    if (p) {
 	if (debug & DEBUG_PASSWD_FLAG)
 	    report(LOG_DEBUG, "verify daemon %s == NAS %s", p, passwd);
 
@@ -211,8 +204,7 @@ verify(char *name, char *passwd, struct authen_data *data, int recurse)
 	return(passwd_file_verify(name, passwd, data, p));
     }
 
-    /*
-     * Oops. No idea what kind of password this is. This should never
+    /* Oops. No idea what kind of password this is. This should never
      * happen as the parser should never create such passwords.
      */
     report(LOG_ERR, "%s: Error cannot identify password type %s for %s",
@@ -352,10 +344,10 @@ etc_passwd_file_verify(char *user, char *supplied_passwd,
 	 * Convert this to ascii so that the traditional tacacs
 	 * password expiration routines work correctly.
 	 */
+
 	if (spwd->sp_expire > 0) {
 	    long secs = spwd->sp_expire * 24 * 60 * 60;
 	    char *p = ctime(&secs);
-
 	    memcpy(buf, p + 4, 7);
 	    memcpy(buf + 7, p + 20, 4);
 	    buf[11] = '\0';
@@ -452,7 +444,7 @@ des_verify(char *users_passwd, char *encrypted_passwd)
 	return(0);
     }
 
-    ep = (char *)crypt(users_passwd, encrypted_passwd);
+    ep = (char *) crypt(users_passwd, encrypted_passwd);
 
     if (debug & DEBUG_PASSWD_FLAG)
 	report(LOG_DEBUG, "%s encrypts to %s", users_passwd, ep);
@@ -470,14 +462,12 @@ des_verify(char *users_passwd, char *encrypted_passwd)
 }
 
 #if HAVE_PAM
-/* pam_conv (PAM conversation) callback */
 static int
 pam_tacacs(int nmsg, const struct pam_message **pmpp, struct pam_response
 	   **prpp, void *appdata_ptr)
 {
     int i;
     struct authen_cont *acp;
-    char *passwd = (char *)appdata_ptr;
     u_char *reply, *rp;
 
     if (debug & DEBUG_PASSWD_FLAG)
@@ -488,7 +478,7 @@ pam_tacacs(int nmsg, const struct pam_message **pmpp, struct pam_response
     if ((*prpp = (struct pam_response *)
 		 tac_malloc(nmsg * sizeof(struct pam_response))) == NULL)
 	return(PAM_BUF_ERR);
-    memset((struct pam_repsonse *)*prpp, 0,
+    memset((struct pam_repsonse *) *prpp, 0,
 	   nmsg * sizeof(struct pam_response));
 
     for (i = 0; i < nmsg; ++i) {
@@ -498,35 +488,29 @@ pam_tacacs(int nmsg, const struct pam_message **pmpp, struct pam_response
 		report(LOG_DEBUG, "%s %s: PAM_PROMPT_ECHO_OFF", session.peer,
 		       session.port);
 
-	    /* pre-supplied password, such as service=PAP, or prompt for it */
-	    if (passwd != NULL && strlen(passwd) > 0) {
-		prpp[i]->resp = tac_strdup(passwd);
-	    } else {
-		send_authen_reply(TAC_PLUS_AUTHEN_STATUS_GETPASS,
-				  (char *)pmpp[i]->msg,
-				  pmpp[i]->msg ? strlen(pmpp[i]->msg) : 0,
-				  NULL, 0, TAC_PLUS_AUTHEN_FLAG_NOECHO);
-		reply = get_authen_continue();
-		if (!reply) {
-		    /* Typically due to a premature connection close */
-		    report(LOG_ERR, "%s %s: Null reply packet, expecting "
-			   "CONTINUE", session.peer, session.port);
- 		    goto fail;
-		}
-		acp = (struct authen_cont *)(reply + TAC_PLUS_HDR_SIZE);
-
-		rp = reply + TAC_PLUS_HDR_SIZE +
-		     TAC_AUTHEN_CONT_FIXED_FIELDS_SIZE;
-		/*
-		 * A response to our GETDATA/GETPASS request. Create a
-		 * null-terminated string for authen_data.
-		 */
-		prpp[i]->resp = (char *)tac_malloc(acp->user_msg_len + 1);
-		memcpy(prpp[i]->resp, rp, acp->user_msg_len);
-		prpp[i]->resp[acp->user_msg_len] = '\0';
-
-		free(reply);
+	    send_authen_reply(TAC_PLUS_AUTHEN_STATUS_GETPASS,
+			      (char *)pmpp[i]->msg,
+			      pmpp[i]->msg ? strlen(pmpp[i]->msg) : 0,
+			      NULL, 0, TAC_PLUS_AUTHEN_FLAG_NOECHO);
+	    reply = get_authen_continue();
+	    if (!reply) {
+		/* Typically due to a premature connection close */
+		report(LOG_ERR, "%s %s: Null reply packet, expecting CONTINUE",
+		       session.peer, session.port);
+ 		goto fail;
 	    }
+	    acp = (struct authen_cont *) (reply + TAC_PLUS_HDR_SIZE);
+
+	    rp = reply + TAC_PLUS_HDR_SIZE + TAC_AUTHEN_CONT_FIXED_FIELDS_SIZE;
+	    /*
+	     * A response to our GETDATA/GETPASS request. Create a
+	     * null-terminated string for authen_data.
+	     */
+	    prpp[i]->resp = (char *) tac_malloc(acp->user_msg_len + 1);
+	    memcpy(prpp[i]->resp, rp, acp->user_msg_len);
+	    prpp[i]->resp[acp->user_msg_len] = '\0';
+
+	    free(reply);
 	    break;
 	case PAM_PROMPT_ECHO_ON:
 	    if (debug & DEBUG_PASSWD_FLAG)
@@ -544,14 +528,14 @@ pam_tacacs(int nmsg, const struct pam_message **pmpp, struct pam_response
 		       session.peer, session.port);
  		goto fail;
 	    }
-	    acp = (struct authen_cont *)(reply + TAC_PLUS_HDR_SIZE);
+	    acp = (struct authen_cont *) (reply + TAC_PLUS_HDR_SIZE);
 
 	    rp = reply + TAC_PLUS_HDR_SIZE + TAC_AUTHEN_CONT_FIXED_FIELDS_SIZE;
 	    /*
 	     * A response to our GETDATA/GETPASS request. Create a
 	     * null-terminated string for authen_data.
 	     */
-	    prpp[i]->resp = (char *)tac_malloc(acp->user_msg_len + 1);
+	    prpp[i]->resp = (char *) tac_malloc(acp->user_msg_len + 1);
 	    memcpy(prpp[i]->resp, rp, acp->user_msg_len);
 	    prpp[i]->resp[acp->user_msg_len] = '\0';
 
@@ -600,7 +584,7 @@ pam_verify(char *user, char *passwd)
 {
     int			err;
     int			pam_flag;
-    struct pam_conv	conv = { pam_tacacs, passwd };
+    struct pam_conv	conv = { pam_tacacs, NULL };
     pam_handle_t	*pamh = NULL;
 
     if (debug & DEBUG_PASSWD_FLAG)
@@ -612,7 +596,7 @@ pam_verify(char *user, char *passwd)
 	return(0);
     }
 
-    if ((err = pam_start(progname, user, &conv, &pamh)) != PAM_SUCCESS) {
+    if ((err = pam_start("tac_plus", user, &conv, &pamh)) != PAM_SUCCESS) {
 	report(LOG_ERR, "pam_start failed: %s", pam_strerror(pamh, err));
 	pam_end(pamh, err);
 	if (debug & DEBUG_PASSWD_FLAG)

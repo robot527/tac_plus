@@ -21,13 +21,6 @@
 
 #include "tac_plus.h"
 #include <regex.h>
-#ifndef REG_OK
-# ifdef REG_NOERROR
-#  define REG_OK REG_NOERROR
-# else
-#  define REG_OK 0
-# endif
-#endif
 
 /*
    <config>		:=	<decl>*
@@ -58,9 +51,8 @@
    <host_decl>		:=	host = <string> {
 					key = <string>
 					prompt = <string>
-					enable = aceclnt|cleartext|des|
-						 file <filename/string>|
-						 nopassword|skey
+					enable = (file|skey|cleartext|des|
+						  nopassword) <filename/string>
 				}
 
    <user_decl>		:=	user = <string> {
@@ -69,17 +61,12 @@
 					<svc>*
 				}
 
-   <password_spec>	:=	nopassword |
-#ifdef ACECLNT
-				aceclnt|
-#endif
+   <password_spec>	:=	file <filename> |
+				skey |
 				cleartext <password> |
 				des <password> |
-				file <filename> |
-#ifdef HAVE_PAM
 				PAM |
-#endif
-				skey
+				nopassword
 
    <user_attr>		:=	name	= <string> |
 				login	= <password_spec> |
@@ -92,9 +79,6 @@
 #endif
 				pap	= cleartext <string> |
 				pap	= des <string> |
-#ifdef HAVE_PAM
-				pap	= PAM |
-#endif
 				opap	= cleartext <string> |
 				global	= cleartext <string> |
 				msg	= <string>
@@ -109,12 +93,8 @@
 
    <cmd-match>		:=	<permission> <string>
 
-   <proto>		:=	XXX define this
-
-   <svc_auth>		:=	service = ( arap | connection | exec |
-					    ppp protocol = <proto> | shell |
-					    slip | system | tty-daemon |
-					    <client defined> ) {
+   <svc_auth>		:=	service = ( exec | arap | slip |
+					    ppp protocol = <string>) {
 					[ default attribute = permit ]
 					<attr_value_pair>*
 				}
@@ -1066,6 +1046,7 @@ parse_user(void)
 
 	case S_svc:
 	case S_cmd:
+
 	    if (user->svcs) {
 		/*
 		 * Already parsed some services/commands. Thanks to Gabor Kiss
@@ -1093,12 +1074,6 @@ parse_user(void)
 
 #ifdef SKEY
 	    case S_skey:
-		user->login = tac_strdup(sym_buf);
-		break;
-#endif
-
-#ifdef ACECLNT
-	    case S_aceclnt:
 		user->login = tac_strdup(sym_buf);
 		break;
 #endif
@@ -1132,9 +1107,6 @@ parse_user(void)
 #ifdef SKEY
 			    "'skey', "
 #endif
-#ifdef ACECLNT
-			    "'aceclnt', "
-#endif
 #ifdef HAVE_PAM
 			    "'PAM', "
 #endif
@@ -1155,13 +1127,6 @@ parse_user(void)
 	    parse(S_separator);
 	    switch(sym_code) {
 
-#ifdef HAVE_PAM
-	    case S_pam:
-		user->pap = tac_strdup(sym_buf);
-		break;
-#endif
-
-	    case S_file:
 	    case S_cleartext:
 	    case S_des:
 		sprintf(buf, "%s ", sym_buf);
@@ -1171,11 +1136,7 @@ parse_user(void)
 		break;
 
 	    default:
-		parse_error("expecting 'cleartext', "
-#ifdef HAVE_PAM
-			    "'PAM', "
-#endif
-			    "or 'des' keyword after "
+		parse_error("expecting 'cleartext', or 'des' keyword after "
 			    "'pap =' on line %d", sym_line);
 	    }
 	    sym_get();
@@ -1215,19 +1176,11 @@ parse_user(void)
 		    user->enable = tac_strdup(sym_buf);
 		    break;
 #endif
-#ifdef ACECLNT
-		case S_aceclnt:
-		    user->enable = tac_strdup(sym_buf);
-		    break;
-#endif
 
 		default:
 		    parse_error("expecting 'file', 'cleartext', 'nopassword', "
 #ifdef SKEY
 				"'skey', "
-#endif
-#ifdef ACECLNT
-				"'aceclnt', "
 #endif
 				"or 'des' keyword after 'enable =' on line %d",
 				sym_line);
@@ -1368,9 +1321,14 @@ parse_svcs(void)
     parse(S_svc);
     parse(S_separator);
     switch (sym_code) {
+    default:
+	parse_error("expecting service type but found %s on line %d",
+		    sym_buf, sym_line);
+	return(NULL);
+
     case S_string:
 	result->type = N_svc;
-	/* XXX should perhaps check that this is an allowable service name */
+	/* should perhaps check that this is an allowable service name */
 	result->value1 = tac_strdup(sym_buf);
 	break;
     case S_exec:
@@ -1387,13 +1345,9 @@ parse_svcs(void)
 	parse(S_ppp);
 	parse(S_protocol);
 	parse(S_separator);
-	/* XXX Should perhaps check that this is a known PPP protocol name */
+	/* Should perhaps check that this is a known PPP protocol name */
 	result->value1 = tac_strdup(sym_buf);
 	break;
-    default:
-	parse_error("expecting service type but found %s on line %d",
-		    sym_buf, sym_line);
-	return(NULL);
     }
     sym_get();
     parse(S_openbra);
@@ -1776,11 +1730,9 @@ get_hvalue(HOST *host, int field)
 	    v.pval = host->key;
 	    break;
 
-	/* XXX
-	case S_type:
+	/*case S_type:
 	    v.pval = host->type;
-	    break;
-	 */
+	    break;*/
 
 	case S_prompt:
 	    v.pval = host->prompt;
@@ -2085,7 +2037,7 @@ cfg_acl_check(char *aclname, char *ip)
 
     next = acl->nodes;
     while (next) {
-	if (regexec((regex_t *)next->value1, ip, 0, NULL, 0) == REG_OK) {
+	if (regexec((regex_t *)next->value1, ip, 0, NULL, 0)) {
 	    if (debug & DEBUG_AUTHEN_FLAG)
 		report(LOG_DEBUG, "ip %s matched %s regex %s of acl filter %s",
 			ip, next->type == S_deny ? "deny" : "permit",

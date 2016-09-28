@@ -36,16 +36,7 @@ authen(u_char *pak)
     HDR *hdr;
 
     hdr = (HDR *)pak;
-    start = (struct authen_start *)(pak + TAC_PLUS_HDR_SIZE);
-
-    /* Must be at least sizeof(struct authen_start) in size */
-    if (ntohl(hdr->datalength) < TAC_AUTHEN_START_FIXED_FIELDS_SIZE) {
-	report(LOG_ERR, "%s: authen minimum payload length: %zu, got: %u",
-	       session.peer, TAC_AUTHEN_START_FIXED_FIELDS_SIZE,
-	       ntohl(hdr->datalength));
-	send_authen_error("Invalid AUTHEN/START packet (too short)");
-	return;
-    }
+    start = (struct authen_start *) (pak + TAC_PLUS_HDR_SIZE);
 
     if ((hdr->seq_no != 1) ||
 	(ntohl(hdr->datalength) != TAC_AUTHEN_START_FIXED_FIELDS_SIZE +
@@ -62,8 +53,7 @@ authen(u_char *pak)
 	do_start(pak);
 	return;
     default:
-	snprintf(msg, sizeof(msg), "Invalid AUTHEN/START action=%d",
-        	 start->action);
+	sprintf(msg, "Invalid AUTHEN/START action=%d", start->action);
 	send_authen_error(msg);
 	return;
     }
@@ -326,7 +316,7 @@ authenticate(struct authen_data *datap, struct authen_type *typep)
 	    return;
 	}
 
-	if ((*func)(datap)) {
+	if ((*func) (datap)) {
 	    send_authen_error("Unexpected authentication function failure");
 	    return;
 	}
@@ -397,13 +387,13 @@ authenticate(struct authen_data *datap, struct authen_type *typep)
 		datap->flags |= TAC_PLUS_CONTINUE_FLAG_ABORT;
 
 		if (datap->method_data)
-		    ((*func)(datap));
+		    ((*func) (datap));
 
 		datap->flags = 0;
 		return;
 	    }
 
-	    cont = (struct authen_cont *)(reply + TAC_PLUS_HDR_SIZE);
+	    cont = (struct authen_cont *) (reply + TAC_PLUS_HDR_SIZE);
 
 	    if (cont->flags & TAC_PLUS_CONTINUE_FLAG_ABORT) {
 		session.aborted = 1;
@@ -413,7 +403,7 @@ authenticate(struct authen_data *datap, struct authen_type *typep)
 
 		datap->flags |= TAC_PLUS_CONTINUE_FLAG_ABORT;
 		if (datap->method_data)
-		    ((*func)(datap));
+		    ((*func) (datap));
 		datap->flags = 0;
 
 		if (cont->user_data_len) {

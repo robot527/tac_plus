@@ -83,19 +83,19 @@ lookup(char *sym, struct author_data *data)
 	return(tac_strdup(data->id->NAC_address));
     }
     if (STREQ(sym, "priv")) {
-	snprintf(buf, sizeof(buf), "%d", data->id->priv_lvl);
+	sprintf(buf, "%d", data->id->priv_lvl);
 	return(tac_strdup(buf));
     }
     if (STREQ(sym, "method")) {
-	snprintf(buf, sizeof(buf), "%d", data->authen_method);
+	sprintf(buf, "%d", data->authen_method);
 	return(tac_strdup(buf));
     }
     if (STREQ(sym, "type")) {
-	snprintf(buf, sizeof(buf), "%d", data->authen_type);
+	sprintf(buf, "%d", data->authen_type);
 	return(tac_strdup(buf));
     }
     if (STREQ(sym, "service")) {
-	snprintf(buf, sizeof(buf), "%d", data->service);
+	sprintf(buf, "%d", data->service);
 	return(tac_strdup(buf));
     }
     if (STREQ(sym, "status")) {

@@ -41,7 +41,7 @@ char *logfile = TACPLUS_LOGFILE;
 /* report:
  *
  * This routine reports errors and such via stderr and syslog() if
- * appopriate.
+ * appopriate.  It just helps avoid a lot of if-else in the code.
  *
  * LOG_DEBUG messages are ignored unless debugging is on.
  * All other priorities are always logged to syslog.
@@ -58,20 +58,99 @@ report(priority, fmt, va_alist)
     va_dcl				/* no terminating semi-colon */
 #endif
 {
-    char msg[4096];		/* temporary string */
+    char msg[255];		/* temporary string */
+    char *fp, *bufp, *charp;
+    int len, m, i, n;
+    long int l;
+    char digits[32];
     va_list ap;
-    int ret;
+
+    charp = NULL;
+    m = 0;
 
 #ifdef __STDC__
     va_start(ap, fmt);
 #else
     va_start(ap);
 #endif
-    ret = vsnprintf(msg, sizeof(msg), fmt, ap);
+
+    /* ensure that msg is never overwritten */
+    n = 255;
+    fp = fmt;
+    len = 0;
+    msg[n-1] = '\0';
+    bufp = msg;
+
+    while (*fp) {
+
+	if (*fp != '%') {
+	    if ((len+1) >= n) {
+		break;
+	    }
+	    *bufp++ = *fp++;
+	    len++;
+	    continue;
+	}
+
+	/* seen a '%' */
+	fp++;
+
+	switch (*fp) {
+	case 's':
+	    fp++;
+	    charp = va_arg(ap, char *);
+	    m = strlen(charp);
+	    break;
+
+	case 'l':
+	    fp++;
+	    l = va_arg(ap, long);
+	    sprintf(digits, "%ld", l);
+	    m = strlen(digits);
+	    charp = digits;
+	    break;
+	case 'u':
+	    fp++;
+	    i = va_arg(ap, uint);
+	    sprintf(digits, "%u", i);
+	    m = strlen(digits);
+	    charp = digits;
+	    break;
+	case 'x':
+	    fp++;
+	    i = va_arg(ap, uint);
+	    sprintf(digits, "%x", i);
+	    m = strlen(digits);
+	    charp = digits;
+	    break;
+	case 'd':
+	    fp++;
+	    i = va_arg(ap, int);
+	    sprintf(digits, "%d", i);
+	    m = strlen(digits);
+	    charp = digits;
+	    break;
+	}
+
+	if ((len + m + 1) >= n) {
+	    break;
+	}
+
+	memcpy(bufp, charp, m);
+	bufp += m;
+	len += m;
+	continue;
+    }
+
+    msg[len] = '\0';
+
+    /* check we never overwrote the end of the buffer */
+    if (msg[n-1]) {
+	abort();
+    }
+
     va_end(ap);
 
-    if (ret < 0)
-      msg[0] = '\0';
 
     if (console) {
 	if (!ostream)

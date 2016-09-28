@@ -46,6 +46,7 @@ struct private_data {
  *
  * Return 0 if data->status is valid, otherwise 1
  */
+
 int
 default_v0_fn(struct authen_data *data)
 {
@@ -72,7 +73,7 @@ default_v0_fn(struct authen_data *data)
 
     /* Unless we're enabling, we need a username */
     if (data->service != TAC_PLUS_AUTHEN_SVC_ENABLE &&
-	(char)data->NAS_id->username[0] == '\0') {
+	!(char) data->NAS_id->username[0]) {
 	switch (p->state) {
 
 	case STATE_AUTHEN_GETUSER:
@@ -117,10 +118,10 @@ default_v0_fn(struct authen_data *data)
     passwd = p->password;
 
     if (!passwd[0]) {
-	/*
-	 * no password yet. Either we need to ask for one and expect to get
-	 * called again, or we asked but nothing came back, which is fatal
-	 */
+
+	/* no password yet. Either we need to ask for one and expect to get
+	 * called again, or we asked but nothing came back, which is fatal */
+
 	switch (p->state) {
 	case STATE_AUTHEN_GETPASS:
 	    /* We already asked for a password. This should be the reply */

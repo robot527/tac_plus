@@ -60,9 +60,6 @@ parser_init(void)
 
     declare("access", S_access);
     declare("accounting", S_accounting);
-#ifdef ACECLNT
-    declare("aceclnt", S_aceclnt);
-#endif
 #ifdef ACLS
     declare("acl", S_acl);
 #endif
@@ -175,10 +172,6 @@ codestring(int type)
 #ifdef SKEY
     case S_skey:
 	return("skey");
-#endif
-#ifdef ACECLNT
-    case S_aceclnt:
-	return("aceclnt");
 #endif
     case S_name:
 	return("name");

@@ -73,7 +73,7 @@ do_acct_file(struct acct_rec *rec)
     char ct[LINE_MAX];
     struct tm *tm;
 
-    tm = localtime(&t);
+    tm = gmtime(&t);
     strftime(ct, LINE_MAX, "%h %e %T", tm);
 
     if (!acctfd) {
@@ -158,16 +158,16 @@ do_acct_syslog(struct acct_rec *rec)
 
     switch(rec->acct_type) {
 	case ACCT_TYPE_UPDATE:
-	    acct_type = "update";
+	    acct_type = "update"; 
 	    break;
 	case ACCT_TYPE_START:
-	    acct_type = "start";
+	    acct_type = "start"; 
 	    break;
 	case ACCT_TYPE_STOP:
-	    acct_type = "stop";
+	    acct_type = "stop"; 
 	    break;
 	default:
-	    acct_type = "default";
+	    acct_type = "default"; 
     }
 
     for (i = 0; i < rec->num_args; i++) {
@@ -186,14 +186,14 @@ do_acct_syslog(struct acct_rec *rec)
 	}
     }
 
-    syslog(LOG_INFO, "%s    %s    %s    %s    %s    %s",
-	   ((rec->identity->NAS_name) && rec->identity->NAS_name[0]) ?
+    syslog(LOG_INFO, "%s    %s    %s    %s    %s    %s", 
+	   ((rec->identity->NAS_name) && rec->identity->NAS_name[0]) ? 
 	    rec->identity->NAS_name : "unknown",
-	   ((rec->identity->username) && rec->identity->username[0]) ?
+	   ((rec->identity->username) && rec->identity->username[0]) ? 
 	    rec->identity->username : "unknown",
-	   ((rec->identity->NAS_port) && rec->identity->NAS_port[0]) ?
+	   ((rec->identity->NAS_port) && rec->identity->NAS_port[0]) ? 
 	    rec->identity->NAS_port : "unknown",
-	   ((rec->identity->NAC_address) && rec->identity->NAC_address[0]) ?
+	   ((rec->identity->NAC_address) && rec->identity->NAC_address[0]) ? 
 	    rec->identity->NAC_address : "unknown",
 	   acct_type, cmdbuf);
 
@@ -205,18 +205,11 @@ do_acct_syslog(struct acct_rec *rec)
 int
 wtmp_entry(char *line, char *name, char *host, time_t utime)
 {
-#if HAVE_UTMP_H
     struct utmp entry;
-#elif HAVE_UTMPX_H
-    struct utmpx entry;
-#endif
 
     if (!wtmpfile) {
 	return(1);
     }
-#if HAVE_UTMPX_H  && !HAVE_UTMP_H
-# define ut_name	ut_user
-#endif
 
     memset(&entry, 0, sizeof entry);
 
@@ -236,13 +229,7 @@ wtmp_entry(char *line, char *name, char *host, time_t utime)
     else
 	memcpy(entry.ut_host, host, sizeof(entry.ut_host));
 #endif
-#if HAVE_UTMP_H
     entry.ut_time = utime;
-#elif HAVE_UTMPX_H
-    entry.ut_tv.tv_sec = utime;
-#else
-# error "unknown utmp time field"
-#endif
 
 #ifdef FREEBSD
     wtmpfd = open(wtmpfile, O_CREAT | O_WRONLY | O_APPEND, 0644);

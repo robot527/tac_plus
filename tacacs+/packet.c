@@ -21,7 +21,6 @@
 
 #include "tac_plus.h"
 #include <poll.h>
-#include <netdb.h>
 #include <signal.h>
 #include <time.h>
 
@@ -45,7 +44,7 @@ get_authen_continue(void)
     HDR *hdr;
     u_char *pak;
     struct authen_cont *cont;
-    char msg[NI_MAXHOST + 256];
+    char msg[255];
 
     pak = read_packet();
     if (!pak)
@@ -54,10 +53,9 @@ get_authen_continue(void)
     cont = (struct authen_cont *)(pak + TAC_PLUS_HDR_SIZE);
 
     if ((hdr->type != TAC_PLUS_AUTHEN) || (hdr->seq_no <= 1)) {
-	if (snprintf(msg, sizeof(msg), "%s: Bad packet type=%d/seq no=%d "
-		     "when expecting authentication cont", session.peer,
-		     hdr->type, hdr->seq_no) == -1)
-	    strcpy(msg, "");
+	sprintf(msg,
+	  "%s: Bad packet type=%d/seq no=%d when expecting authentication cont",
+		session.peer, hdr->type, hdr->seq_no);
 	report(LOG_ERR, msg);
 	send_authen_error(msg);
 	return(NULL);
@@ -116,7 +114,7 @@ read_packet(void)
     if ((ntohl(hdr.datalength) & ~0xffffUL) ||
 	(len < TAC_PLUS_HDR_SIZE) || (len > 0x10000)) {
 	report(LOG_ERR, "%s: Illegal data size: %lu\n", session.peer,
-	       (unsigned long)ntohl(hdr.datalength));
+	       ntohl(hdr.datalength));
 	return(NULL);
     }
     pkt = (u_char *)tac_malloc(len);
@@ -138,7 +136,7 @@ read_packet(void)
     session.last_exch = time(NULL);
 
     if (session.seq_no != hdr.seq_no) {
-	report(LOG_ERR, "%s: Illegal session seq #, expecting %d, received %d",
+	report(LOG_ERR, "%s: Illegal session seq # %d != packet seq # %d",
 	       session.peer, session.seq_no, hdr.seq_no);
 	free(pkt);
 	return(NULL);
@@ -230,11 +228,9 @@ send_acct_reply(u_char status, char *msg, char *data)
 void
 send_authen_error(char *msg)
 {
-    char buf[NI_MAXHOST + 256];
+    char buf[255];
 
-    if (snprintf(buf, sizeof(buf), "%s %s: %s", session.peer, session.port,
-		 msg) == -1)
-	strcpy(buf, "");
+    sprintf(buf, "%s %s: %s", session.peer, session.port, msg);
     report(LOG_ERR, buf);
     send_authen_reply(TAC_PLUS_AUTHEN_STATUS_ERROR, buf, strlen(buf), NULL, 0,
 		      0);
@@ -384,21 +380,22 @@ send_error_reply(int type, char *msg)
     switch (type) {
     case TAC_PLUS_AUTHEN:
 	send_authen_error(msg);
-	break;
+	return;
 
     case TAC_PLUS_AUTHOR:
 	send_author_reply(AUTHOR_STATUS_ERROR, msg, NULL, 0, NULL);
-	break;
+	return;
 
     case TAC_PLUS_ACCT:
 	send_acct_reply(TAC_PLUS_ACCT_STATUS_ERROR, msg, NULL);
-	break;
+	return;
 
     default:
 	report(LOG_ERR, "Illegal type %d for send_error_reply", type);
-	break;
+	return;
     }
 
+    /*NOTREACHED*/
     return;
 }
 

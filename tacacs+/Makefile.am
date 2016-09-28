@@ -15,9 +15,6 @@ tac_plus_SOURCES = acct.c authen.c author.c choose_authen.c config.c \
 if TACSKEY
 tac_plus_SOURCES += skey_fn.c
 endif
-if TACACECLNT
-tac_plus_SOURCES += aceclnt_fn.c
-endif
 tac_plus_LDFLAGS = -L$(top_srcdir)
 tac_plus_LDADD = $(WRAPLIBS) -ltacacs
 

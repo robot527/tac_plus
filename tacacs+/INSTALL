@@ -18,7 +18,7 @@ Quick Installation Guide (an example):
 
    tacacs	tcp/49
 
-4) read the tac_plus(8) manual page
+4) read the tac_plug(8) manual page
 
 5) Send any bugs, suggestions or updates to tac_plus@shrubbery.net.
    See the web page at http://www.shrubbery.net/tac_plus.

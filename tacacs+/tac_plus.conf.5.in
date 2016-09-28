@@ -1,6 +1,6 @@
 .\"
 .hys 50
-.TH tac_plus.conf 5 "1 August 2013"
+.TH tac_plus.conf 5 "28 November 2009"
 .\"
 .SH NAME
 .\"
@@ -121,7 +121,7 @@ group (which may be a member of yet another group, and so on).
 .TP
 .B host
 The host clause allows the configuration values noted below to be set
-for the client named by IP address.  If
+for the client name by IP address.  If
 .B tac_plus
 is started with the
 .B \-L
@@ -212,14 +212,6 @@ the AV pair is optional.
     [ optional ] <string> = <string>
 .fi
 .sp
-Optional AV pairs are only sent to the client if it requests them.  That is,
-the client must have included the given AV pair as a mandatory or optional
-pair in the request.
-.sp
-Some clients react incorrectly and negatively to receiving AV pairs that it
-did not solicit.  Optional AV pairs should be ignored if they are not
-recognized or not supported in any given context.
-.sp
 Also see the "Configuring Authorization" and "AV Pairs" sections below.
 .\"
 .TP
@@ -304,16 +296,6 @@ directives in a <svc> clause.
 Represents the one-way encryption of a password <string>.  For example,
 a password might encrypt to the string 0AmUKnIT2gheo.
 .sp
-DES is the encryption historically used in Unix passwd(5) files.  The
-crypt() function of the system's libcrypt is used to perform the
-encryption.  The libcrypt of modern Unicies tend to support additional
-encryption algorithms and thus so would
-.B tac_plus.
-See the system's crypt manual page.  To utilize another format, use the
-des keyword followed by the crypt in the format as described in the
-manpage.  Typically it will have a "$1" prefix for MD5, "$2" for blowfish,
-and so on.
-.sp
 .BR tac_pwd (8)
 is a utility supplied with
 .B tac_plus
@@ -392,7 +374,7 @@ with skey (--enable-skey) support.
 PAM (Pluggable Authentication Modules framework) is an authentication
 mechanism (and much more) capable of various types of authentication
 methods that are chosen by a configuration file.
-The PAM service name is the name of tac_plus executable, normally "tac_plus".
+The PAM service name is "tac_plus".
 PAM can be used only for login authentication, it is not implemented for
 enable authorization, and does not support OTP-like challenge system (ie:
 no additional prompting).
@@ -437,9 +419,8 @@ those exceptions, enclose the string in double quotes ("this has whitespace").
 .TP
 .B svc_auth
 	XXX:
-		service = ( arap | connection | exec | ppp protocol = <proto> |
-			shell | slip | system | tty-daemon | <client defined> )
-			{
+		service = ( exec | arap | slip | ppp | shell | tty-daemon |
+				connection | system ) protocol = <proto> {
 			[ <default attribute> ]
                         <attr_value_pair>*
                     }
@@ -466,9 +447,6 @@ news, syslog, user, and uucp.
         enable = <password_spec>
         pap  = cleartext "inbound pap password"
         opap = cleartext "outbound pap password"
-        pap  = des <des_string>
-        pap  = file <filename>
-        pap  = PAM
         login = <password_spec>
         global = cleartext "outbound pap password"
     }
@@ -520,10 +498,6 @@ chap
 	#endif
                          pap      = cleartext <string> |
                          pap      = des <string> |
-                         pap      = file <filename> |
-	#ifdef PAM
-                         pap      = PAM |
-	#endif
                          opap     = cleartext <string> |
                          global   = cleartext <string> |
                          msg      = <string>

@@ -55,8 +55,6 @@
 # include <stdint.h>
 #endif
 
-#define MD5_SIZE	16
-
 /* typedef a generic pointer type */
 typedef unsigned char *POINTER;
 

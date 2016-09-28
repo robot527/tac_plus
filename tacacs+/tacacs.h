@@ -26,7 +26,6 @@
 
 #ifndef TAC_PLUS_PORT
 #define	TAC_PLUS_PORT			49
-#define	TAC_PLUS_PORTSTR		"49"
 #endif
 
 #define TAC_PLUS_READ_TIMEOUT		180	/* seconds */
@@ -483,11 +482,10 @@ void	set_expiration_status(char *, struct authen_data *);
 int	verify(char *, char *, struct authen_data *, int);
 int	verify_pwd(char *, char *, struct authen_data *, char *);
 
-int aceclnt_fn(struct authen_data *data);
-int default_v0_fn(struct authen_data *data);
-int enable_fn(struct authen_data *data);
 int sendauth_fn(struct authen_data *data);
 int sendpass_fn(struct authen_data *data);
+int enable_fn(struct authen_data *data);
+int default_v0_fn(struct authen_data *data);
 int skey_fn(struct authen_data *data);
 
 /* tac_plus.c */
