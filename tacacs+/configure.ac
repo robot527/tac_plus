@@ -1,16 +1,18 @@
 dnl Process this file with autoconf to produce a configure script.
 dnl A configure script is provided, in cause you do not have autoconf.
 
-AC_PREREQ(2.13)
-AC_INIT(CHANGES)
-
-PACKAGE=`sed -n 's/.*package.*"\(.*\)".*/\1/p' $srcdir/version.h.in|tr -d ' '`
-VERSION=`sed -n 's/.*version.*"\(.*\)".*/\1/p' $srcdir/version.h.in|tr -d ' '`
+AC_PREREQ(2.69)
 
 dnl VERSION needs to be updated in version.h.in such that 'make dist'
 dnl uses the correct filename for the directory name and tarball and binaries
 dnl get the right version numbers.
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION, tac_plus@shrubbery.net)
+PACKAGE=`sh ./aconf/package.sh`
+VERSION=`sh ./aconf/version.sh`
+AC_INIT(m4_esyscmd(sh ./aconf/package.sh),
+ 	m4_esyscmd(sh ./aconf/version.sh))
+AC_CONFIG_AUX_DIR([aconf])
+AC_CONFIG_MACRO_DIR([aconf])
+AM_INIT_AUTOMAKE
 
 AM_MAINTAINER_MODE()
 
@@ -20,13 +22,13 @@ dnl AC_CONFIG_SUBDIRS(etc man share)
 dnl ---- XXX: these really should deal with the individual reasons why
 dnl      linux/whatever is different, rather than a blanket stmt
 dnl is this crack, i mean linux?
-AH_TEMPLATE(AIX, [define this if your o/s is AIX])
-AH_TEMPLATE(FREEBSD, [define this if your o/s is FreeBSD])
-AH_TEMPLATE(NETBSD, [define this if your o/s is NetBSD])
-AH_TEMPLATE(SOLARIS, [define this if your o/s is Solaris])
-AH_TEMPLATE(HPUX, [define this if your o/s is HPux])
-AH_TEMPLATE(LINUX, [define this if your o/s is Linux])
-AH_TEMPLATE(MIPS, [define this if your o/s is MIPS])
+AH_TEMPLATE([AIX], [define this if your o/s is AIX])
+AH_TEMPLATE([FREEBSD], [define this if your o/s is FreeBSD])
+AH_TEMPLATE([NETBSD], [define this if your o/s is NetBSD])
+AH_TEMPLATE([SOLARIS], [define this if your o/s is Solaris])
+AH_TEMPLATE([HPUX], [define this if your o/s is HPux])
+AH_TEMPLATE([LINUX], [define this if your o/s is Linux])
+AH_TEMPLATE([MIPS], [define this if your o/s is MIPS])
 AC_CANONICAL_HOST
 case "${host_os}" in
     *aix* )
@@ -37,34 +39,34 @@ case "${host_os}" in
 	# CPPFLAGS="$CFLAGS -I/usr/local/include"; export CPPFLAGS
 	# LDFLAGS="$LDFLAGS -L/usr/local/lib"; export LDFLAGS
 	# LIBS="-lcrypt $LIBS"; export LIBS
-        AC_DEFINE(AIX)
+	AC_DEFINE([AIX])
     ;;
     *freebsd* )
 	#CPPFLAGS="$CFLAGS -I/usr/pkg/include"; export CPPFLAGS
 	#LDFLAGS="$LDFLAGS -L/usr/pkg/lib -Xlinker -rpath -Xlinker /usr/pkg/lib"
 	#export LDFLAGS
 	LIBS="-lcrypt $LIBS"; export LIBS
-        AC_DEFINE(FREEBSD)
+	AC_DEFINE(FREEBSD)
     ;;
     *netbsd* )
 	#CPPFLAGS="$CFLAGS -I/usr/pkg/include"; export CPPFLAGS
 	#LDFLAGS="$LDFLAGS -L/usr/pkg/lib -Xlinker -rpath -Xlinker /usr/pkg/lib"
 	#export LDFLAGS
 	LIBS="-lcrypt $LIBS"; export LIBS
-        AC_DEFINE(NETBSD)
+	AC_DEFINE(NETBSD)
     ;;
     *solaris* )
 	#CPPFLAGS="$CFLAGS -I/usr/local/include"; export CPPFLAGS
 	#LDFLAGS="$LDFLAGS -L/usr/local/lib"; export LDFLAGS
 	LIBS="-lnsl -lsocket"; export LIBS
-        AC_DEFINE(SOLARIS)
+	AC_DEFINE(SOLARIS)
     ;;
     *hpux* )
 	# For HP/UX
 	# CPPFLAGS="$CFLAGS -I/usr/local/include"; export CPPFLAGS
 	# LDFLAGS="$LDFLAGS -L/usr/local/lib"; export LDFLAGS
 	# LIBS="-lcrypt $LIBS"; export LIBS
-        AC_DEFINE(HPUX)
+	AC_DEFINE(HPUX)
     ;;
     *linux* )
 	# XXX: not sure if /usr/local is necessary.
@@ -73,7 +75,7 @@ case "${host_os}" in
 	CPPFLAGS="$CFLAGS -I/usr/local/include"; export CPPFLAGS
 	LDFLAGS="$LDFLAGS -L/usr/local/lib -L/lib"; export LDFLAGS
 	LIBS="-lnsl -lcrypt $LIBS"; export LIBS
-        AC_DEFINE(LINUX)
+	AC_DEFINE(LINUX)
 
 	# XXX: does linux need glibc: -DGLIBC
     ;;
@@ -81,7 +83,7 @@ case "${host_os}" in
 	CPPFLAGS="$CFLAGS -I/usr/local/include"; export CPPFLAGS
 	LDFLAGS="$LDFLAGS -L/usr/local/lib"; export LDFLAGS
 	LIBS="-lcrypt $LIBS"; export LIBS
-        AC_DEFINE(MIPS)
+	AC_DEFINE(MIPS)
     ;;
     * )
 	CPPFLAGS="$CFLAGS -I/usr/local/include"; export CPPFLAGS
@@ -126,7 +128,6 @@ ACX_PTHREAD([CC=$PTHREAD_CC; CFLAGS="$CFLAGS $PTHREAD_CFLAGS";
 
 # compiler specifics
 AC_PROG_CC
-AM_C_PROTOTYPES
 AC_PROG_CPP
 AC_C_CONST
 AC_C_INLINE
@@ -142,7 +143,7 @@ if test "$LEX" != "flex" ; then
 	$LEX --version > /dev/null 2>&1
 	if test $? -ne 0 ; then
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([registry requires gnu flex.  sorry])
+		AC_MSG_ERROR([tac_plus requires gnu flex.  sorry])
 	fi
 	AC_MSG_RESULT(yes)
 fi
@@ -154,7 +155,7 @@ if test "$YACC" != "bison" ; then
 	$YACC --version > /dev/null 2>&1
 	if test $? -ne 0 ; then
 		AC_MSG_RESULT()
-		AC_MSG_ERROR([registry requires gnu bison.  sorry])
+		AC_MSG_ERROR([tac_plus requires gnu bison.  sorry])
 	fi
 	AC_MSG_RESULT(yes)
 fi
@@ -172,8 +173,7 @@ dnl
 AC_MSG_CHECKING(whether to include symbols)
 AH_TEMPLATE(DBG, [define this to include debugging support])
 AC_ARG_ENABLE(debug,
-[
-  --enable-debug          include compiler symbols],
+    AS_HELP_STRING([--enable-debug],[include compiler symbols]),
 [ case "$enable_debug" in
   no)
     AC_MSG_RESULT(no)
@@ -198,8 +198,7 @@ dnl             XXX: this should only be set for gcc....
 AC_MSG_CHECKING(whether to set gcc warnings)
 AH_TEMPLATE(WARN, [define this to set pedantic gcc warnings])
 AC_ARG_ENABLE(warn,
-[
-  --enable-warn           pedantic gcc warnings],
+    AS_HELP_STRING([--enable-warn],[pedantic gcc warnings]),
 [ case "$enable_debug" in
   no)
     AC_MSG_RESULT(no)
@@ -232,9 +231,7 @@ AC_MSG_CHECKING(whether to use libwrap)
 AH_TEMPLATE(LIBWRAP, [define this to include libwrap (tcp_wrappers) support])
 AH_TEMPLATE(HAVE_LIBWRAP, [])
 AC_ARG_WITH(libwrap,
-[
-  --with-libwrap[[=PATH]]   libwrap (tcp_wrappers) support.  PATH is dir above
-                          lib, eg: /usr/local. (default)],
+    AS_HELP_STRING([--with-libwrap[[=PATH]]],[libwrap (tcp_wrappers) support.  PATH is dir above lib, eg: /usr/local. (default)]),
 [ case "$withval" in
   no)
     AC_MSG_RESULT(no)
@@ -246,30 +243,30 @@ AC_ARG_WITH(libwrap,
     OLDLIBS="$LIBS"
     LIBS="$WRAPLIBS $LIBS"
     AC_TRY_LINK([ int allow_severity; int deny_severity; ],
-                [ hosts_access(); ],
-        [AC_DEFINE(LIBWRAP)
-        WRAPLIBS="-lwrap"
-        AC_DEFINE(HAVE_LIBWRAP) ],
-                [ AC_MSG_ERROR(Could not find libwrap.  You must first install tcp_wrappers.) ])
+		[ hosts_access(); ],
+	[AC_DEFINE(LIBWRAP)
+	 WRAPLIBS="-lwrap"
+	 AC_DEFINE(HAVE_LIBWRAP) ],
+	[AC_MSG_ERROR(Could not find libwrap.  You must first install tcp_wrappers.) ])
     LIBS="$OLDLIBS"
     ;;
   *)
     AC_MSG_RESULT(yes)
     AC_DEFINE(LIBWRAP)
     if test -d "$withval"; then
-        WRAPINCS="-I$withval/include"
-        WRAPLIBS="-L$withval/lib -lwrap -R$withval/lib"
+	WRAPINCS="-I$withval/include"
+	WRAPLIBS="-L$withval/lib -lwrap -R$withval/lib"
     else
-        WRAPLIBS="$withval"
+	WRAPLIBS="$withval"
     fi
     OLDLIBS="$LIBS"
     OLDINCS="$INCLUDES"
     LIBS="$WRAPLIBS $LIBS"
     INCLUDES="$WRAPINCS"
     AC_TRY_LINK([ int allow_severity; int deny_severity; ],
-                [ hosts_access(); ],
-                [],
-                [ AC_MSG_ERROR(Could not find libwrap.  You must first install tcp_wrappers.) ])
+		[ hosts_access(); ],
+		[],
+		[ AC_MSG_ERROR(Could not find libwrap.  You must first install tcp_wrappers.) ])
     LIBS="$OLDLIBS"
     INCLUDES="$OLDINCS"
     ;;
@@ -281,11 +278,11 @@ AC_ARG_WITH(libwrap,
   OLDLIBS="$LIBS"
   LIBS="$WRAPLIBS $LIBS"
   AC_TRY_LINK([ int allow_severity; int deny_severity; ],
-                [ hosts_access(); ],
-        [AC_DEFINE(LIBWRAP)
-        WRAPLIBS="-lwrap"
-        AC_DEFINE(HAVE_LIBWRAP) ],
-                [ AC_MSG_ERROR(Could not find libwrap.  You must first install tcp_wrappers.) ])
+	[ hosts_access(); ],
+	[AC_DEFINE(LIBWRAP)
+	 WRAPLIBS="-lwrap"
+	 AC_DEFINE(HAVE_LIBWRAP) ],
+	[AC_MSG_ERROR(Could not find libwrap.  You must first install tcp_wrappers.) ])
   LIBS="$OLDLIBS"
 )
 AC_SUBST(WRAPINCS)
@@ -297,8 +294,7 @@ dnl
 AC_MSG_CHECKING([whether to include skey support])
 AH_TEMPLATE(SKEY, [define this to include support for skey])
 AC_ARG_WITH(skey,
-[  --with-skey[[=PATH]]      libskey (skey) support.  PATH is dir above lib,
-                          eg: /usr/local],
+    AS_HELP_STRING([--with-skey[[=PATH]]],[libskey (skey) support.  PATH is dir above lib, eg: /usr/local]),
 [ case "$withval" in
   no)
     AC_MSG_RESULT(no)
@@ -307,23 +303,23 @@ AC_ARG_WITH(skey,
     AC_MSG_RESULT(yes)
     AC_DEFINE(SKEY)
     AC_SEARCH_LIBS([skeychallenge], [skey],
-        [ ],
-        [AC_MSG_ERROR(Could not find libskey.  You must first install skey or provide a hint to the location of library and includes, as in --with-skey=/usr/local.)])
+	[ ],
+	[AC_MSG_ERROR(Could not find libskey.  You must first install skey or provide a hint to the location of library and includes, as in --with-skey=/usr/local.)])
     ;;
   *)
     AC_MSG_RESULT(yes)
     AC_DEFINE(SKEY)
     if test -d "$withval" ; then
 	LDFAGS="$LDFLAGS -L$withval/lib"
-        CFLAGS="$CFLAGS -I$withval/include"
-        AC_SEARCH_LIBS([skeychallenge], [skey],
-            [ ],
-            [AC_MSG_ERROR([Could not find libskey.])
+	CFLAGS="$CFLAGS -I$withval/include"
+	AC_SEARCH_LIBS([skeychallenge], [skey],
+	    [ ],
+	    [AC_MSG_ERROR([Could not find libskey.])
 	])
     else
-        AC_SEARCH_LIBS([skeychallenge], [$withval],
-            [ ],
-            [AC_MSG_ERROR([Could not find lib$withval.])
+	AC_SEARCH_LIBS([skeychallenge], [$withval],
+	    [ ],
+	    [AC_MSG_ERROR([Could not find lib$withval.])
 	])
     fi
     ;;
@@ -340,7 +336,7 @@ dnl
 AC_MSG_CHECKING([whether to include RSA SecurID support])
 AH_TEMPLATE(ACECLNT, [define this to include support for RSA SecurID])
 AC_ARG_WITH(aceclnt,
-	[AS_HELP_STRING([--with-aceclnt[[=PATH]]],[libaceclnt (RSA SecurID) support. PATH is dir above lib, eg: /usr/local])],
+	AS_HELP_STRING([--with-aceclnt[[=PATH]]],[libaceclnt (RSA SecurID) support. PATH is dir above lib, eg: /usr/local]),
 [ case "$withval" in
   no)
     AC_MSG_RESULT(no)
@@ -349,23 +345,23 @@ AC_ARG_WITH(aceclnt,
     AC_MSG_RESULT(yes)
     AC_DEFINE(ACECLNT)
     AC_SEARCH_LIBS([SD_Init], [aceclnt],
-        [ ],
-        [AC_MSG_ERROR(Could not find libaceclnt.  You must first install aceclnt or provide a hint to the location of library and includes, as in --with-aceclnt=/usr/local)])
+	[ ],
+	[AC_MSG_ERROR(Could not find libaceclnt.  You must first install aceclnt or provide a hint to the location of library and includes, as in --with-aceclnt=/usr/local)])
     ;;
   *)
     AC_MSG_RESULT(yes)
     AC_DEFINE(ACECLNT)
     if test -d "$withval" ; then
 	LDFAGS="$LDFLAGS -L$withval/lib"
-        CFLAGS="$CFLAGS -I$withval/include"
-        AC_SEARCH_LIBS([SD_Init], [aceclnt],
-            [ ],
-            [AC_MSG_ERROR([Could not find libaceclnt.])
+	CFLAGS="$CFLAGS -I$withval/include"
+	AC_SEARCH_LIBS([SD_Init], [aceclnt],
+	    [ ],
+	    [AC_MSG_ERROR([Could not find libaceclnt.])
 	])
     else
-        AC_SEARCH_LIBS([SD_Init], [$withval],
-            [ ],
-            [AC_MSG_ERROR([Could not find lib$withval.])
+	AC_SEARCH_LIBS([SD_Init], [$withval],
+	    [ ],
+	    [AC_MSG_ERROR([Could not find lib$withval.])
 	])
     fi
     ;;
@@ -384,7 +380,7 @@ dnl
 AC_MSG_CHECKING([whether to setuid()])
 AH_TEMPLATE(TACPLUS_USERID, [define this to a UID for setuid() at run-time])
 AC_ARG_WITH(userid,
-[  --with-userid=UID       tacacs will setuid(UID) after it binds the tcp port],
+    AS_HELP_STRING([--with-userid=UID],[tacacs will setuid(UID) after it binds the tcp port]),
 [ case "$withval" in
   no)
     AC_MSG_RESULT(no)
@@ -412,7 +408,7 @@ dnl
 AC_MSG_CHECKING(whether to setgid())
 AH_TEMPLATE(TACPLUS_GROUPID, [define this to a GID for setgid() at run-time])
 AC_ARG_WITH(groupid,
-[  --with-groupid=UID      tacacs will setgid(GID) after it binds the tcp port],
+    AS_HELP_STRING([--with-groupid=UID],[tacacs will setgid(GID) after it binds the tcp port]),
 [ case "$withval" in
   no)
     AC_MSG_RESULT(no)
@@ -440,7 +436,7 @@ dnl
 AC_MSG_CHECKING(whether to include ACL support)
 AH_TEMPLATE(ACLS, [define this to include ACL support])
 AC_ARG_ENABLE(acls,
-[  --enable-acls           tacacs config ACL support (default)],
+    AS_HELP_STRING([--enable-acls],[tacacs config ACL support (default)]),
 [ case "$enable_acls" in
   no)
     AC_MSG_RESULT(no)
@@ -470,7 +466,7 @@ dnl
 AC_MSG_CHECKING(whether to include user-enable support)
 AH_TEMPLATE(UENABLE, [define this to include user-specific enable password support])
 AC_ARG_ENABLE(uenable,
-[  --enable-uenable        tacacs config per-user enable support (default)],
+    AS_HELP_STRING([--enable-uenable],[tacacs config per-user enable support (default)]),
 [ case "$enable_uenable" in
   no)
     AC_MSG_RESULT(no)
@@ -500,7 +496,7 @@ dnl
 AC_MSG_CHECKING(whether to include maximum sessions (maxsess) support)
 AH_TEMPLATE(MAXSESS, [define this to include MAXSESS support to enforce a limit on maximum sessions per user ])
 AC_ARG_ENABLE(maxsess,
-[  --enable-maxsess        Enforce a limit on maximum sessions per user],
+    AS_HELP_STRING([--enable-maxsess],[Enforce a limit on maximum sessions per user]),
 [ case "$enable_maxsess" in
   no)
     AC_MSG_RESULT(no)
@@ -525,7 +521,7 @@ AC_MSG_CHECKING(whether to include maxsess finger support)
 AH_TEMPLATE(MAXSESS_FINGER, [define this to include support to finger NASes for
 the number of sessions a user is using])
 AC_ARG_ENABLE(finger,
-[  --enable-finger         finger NAS for number of sessions a user is using],
+    AS_HELP_STRING([--enable-finger],[finger NAS for number of sessions a user is using]),
 [ case "$enable_finger" in
   no)
     AC_MSG_RESULT(no)
@@ -550,7 +546,7 @@ dnl
 AC_MSG_CHECKING(whether to include ARAP DES support)
 AH_TEMPLATE(ARAP_DES, [Define this if you have DES routines you can link to for ARAP (See the user guide for more details)])
 AC_ARG_ENABLE(arapdes,
-[  --enable-arapdes        enable DES for ARAP],
+    AS_HELP_STRING([--enable-arapdes],[enable DES for ARAP]),
 [ case "$enable_arapdes" in
   yes)
     AC_MSG_RESULT(yes)
@@ -570,7 +566,7 @@ dnl
 AC_MSG_CHECKING(whether to include MSCHAP support)
 AH_TEMPLATE(MSCHAP, [Define this if you need MSCHAP support])
 AC_ARG_ENABLE(mschap,
-[  --enable-mschap        enable MSCHAP],
+    AS_HELP_STRING([--enable-mschap],[enable MSCHAP]),
 [ case "$enable_mschap" in
   yes)
     AC_CHECK_HEADER(mschap_.h)
@@ -591,7 +587,7 @@ dnl
 AC_MSG_CHECKING(whether to include MSCHAP DES support)
 AH_TEMPLATE(MSCHAP_DES, [Define this if you have DES routines you can link to for MSCHAP (See the user guide for more details)])
 AC_ARG_ENABLE(mschapdes,
-[  --enable-mschapdes        enable DES for MSCHAP],
+    AS_HELP_STRING([--enable-mschapdes],[enable DES for MSCHAP]),
 [ case "$enable_mschapdes" in
   yes)
     AC_CHECK_HEADER(mschap_des.h)
@@ -617,7 +613,7 @@ else
     TACPLUS_PIDFILE="/etc/tac_plus.pid"
 fi
 AC_ARG_WITH(pidfile,
-[  --with-pidfile=PATH     alternate pidfile FQPN],
+    AS_HELP_STRING([--with-pidfile=PATH],[alternate pidfile FQPN]),
 [ case "$withval" in
   *)
     AC_MSG_RESULT($withval)
@@ -638,7 +634,7 @@ else
     TACPLUS_ACCTFILE="/var/tmp/tac_plus.acct"
 fi
 AC_ARG_WITH(acctfile,
-[  --with-acctfile=PATH    alternate accounting file FQPN],
+    AS_HELP_STRING([--with-acctfile=PATH],[alternate accounting file FQPN]),
 [ case "$withval" in
   *)
     AC_MSG_RESULT($withval)
@@ -659,7 +655,7 @@ else
     TACPLUS_LOGFILE="/var/tmp/tac_plus.log"
 fi
 AC_ARG_WITH(logfile,
-[  --with-logfile=PATH     alternate log file FQPN],
+    AS_HELP_STRING([--with-logfile=PATH],[alternate log file FQPN]),
 [ case "$withval" in
   *)
     AC_MSG_RESULT($withval)
@@ -680,7 +676,7 @@ else
     TACPLUS_WHOLOGFILE="/var/tmp/tacwho.log"
 fi
 AC_ARG_WITH(whologfile,
-[  --with-whologfile=PATH     alternate wholog file FQPN],
+    AS_HELP_STRING([--with-whologfile=PATH],[alternate wholog file FQPN]),
 [ case "$withval" in
   *)
     AC_MSG_RESULT($withval)
@@ -697,7 +693,7 @@ dnl
 AC_MSG_CHECKING(whether to profile)
 AH_TEMPLATE(PROFILE, [define this to include profiling])
 AC_ARG_WITH(prof,
-[  --with-prof             Compile in profiling.],
+    AS_HELP_STRING([--with-prof],[Compile in profiling.]),
 [ case "$withval" in
   yes)
     AC_MSG_RESULT(yes)
@@ -936,14 +932,14 @@ if test $PERLV_PATH = no; then
     unset ac_cv_path_PERLV_PATH
     AC_PATH_PROG(PERLV_PATH,perl,no)
     if test $PERLV_PATH = no; then
-        AC_MSG_ERROR([can't locate a suitable perl5.])
-        exit 1
+	AC_MSG_ERROR([can't locate a suitable perl5.])
+	exit 1
     else
-        $PERLV_PATH -e 'require 5;'
-        if test $? -ne 0 ; then
-           AC_MSG_ERROR([can't locate a suitable perl5.])
-           exit 1
-        fi
+	$PERLV_PATH -e 'require 5;'
+	if test $? -ne 0 ; then
+	    AC_MSG_ERROR([can't locate a suitable perl5.])
+	    exit 1
+	fi
     fi
 fi
 AC_SUBST(PERLV_PATH)
@@ -968,7 +964,7 @@ AC_SUBST(MYSYSCONFDIR)
 # autoheader bits
 AH_TOP([
 #ifndef CONFIG_H
-#define CONFIG_H        1
+#define CONFIG_H	1
 ])
 AH_BOTTOM([
 /* UENABLE requires ACLS */

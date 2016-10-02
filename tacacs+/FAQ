@@ -635,3 +635,11 @@ Q) How does TACACS compare to RADIUS?
 A) Cisco provided a good summary in general and somewhat specific to Cisco
    products here:
    http://www.cisco.com/en/US/tech/tk59/technologies_tech_note09186a0080094e99.shtml#comparing
+
+Q) Cisco WLC (Wireless Lan Controller) does not autheticate with tacacs.
+A) WLC uses roles and must have the appropriate service configuration:
+	service = ciscowlc {
+		role1 = ALL
+	}
+
+   http://www.cisco.com/c/en/us/td/docs/wireless/controller/7-5/config_guide/b_cg75/b_cg75_chapter_0101001.html

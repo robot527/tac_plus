@@ -138,7 +138,7 @@ dump_nas_pak(u_char *pak)
 	exit(1);
     }
 
-    resid = hdr->datalength;
+    resid = ntohl(hdr->datalength);
     switch (hdr->type) {
     case TAC_PLUS_AUTHEN:
 	start = (struct authen_start *) (pak + TAC_PLUS_HDR_SIZE);

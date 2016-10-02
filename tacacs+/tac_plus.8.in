@@ -1,6 +1,6 @@
 .\"
 .hys 50
-.TH tac_plus 8 "28 July 2009"
+.TH tac_plus 8 "29 December 2014"
 .\"
 .SH NAME
 tac_plus \- tacacs plus daemon
@@ -20,8 +20,17 @@ tac_plus \- tacacs plus daemon
 .BI \-l
 <logfile>]
 [\c
+.BI \-m
+<max_listen_queue>]
+[\c
 .BI \-p
 <tcp_port>]
+[\c
+.BI \-Q
+<setgid>]
+[\c
+.BI \-U
+<setuid>]
 [\c
 .BI \-u
 <wtmpfile>]
@@ -135,6 +144,11 @@ option is used.
 The logs are still posted to syslog.
 .\"
 .TP
+.B -m <max_listen_queue>
+Specify an alternative client listen queue limit.
+The default is SOMAXCONN or 64, if your O/S does not specify one.
+.\"
+.TP
 .B -L
 Lookup DNS PTR (Domain Name System PoinTeR) record of client addresses.
 The resulting FQDN (Fully Qualified Domain Name), if it resolves, will be
@@ -157,6 +171,14 @@ Listen on the specified port number instead of the default port
 .B 49 
 for incoming tcp connections.  Note: this changes the name of the
 pid file created by the daemon.
+.\"
+.TP
+.B \-Q <setgid groupname>
+Specify the groupname or GID to
+.IR setgid(2).
+If the daemon was compiled with a specific GID, this option overrides that
+value.
+By default, the daemon inherits the GID from its parent process.
 .\"
 .TP
 .B \-S
@@ -183,6 +205,14 @@ Log all informational, debugging or error messages to
 .B
 /dev/console 
 in addition to logging to syslogd. Useful for debugging.
+.\"
+.TP \-U <setuid username>
+Specify the username or UID to
+.IR setuid(2).
+If the daemon was compiled with a specific UID, this option overrides that
+value.
+The daemon must be started by root to open the privileged port.
+By default, it does not change it's UID and therefore remains root.
 .\"
 .TP
 .B \-u <wtmpfile>

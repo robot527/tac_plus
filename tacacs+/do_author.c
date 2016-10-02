@@ -352,9 +352,9 @@ post_authorization(char *username, struct author_data *data)
 static char *
 value(char *s)
 {
-    while (*s && *s != '=' && *s != '*')
+    while (*s != '\0' && *s != '=' && *s != '*')
 	s++;
-    if (*s)
+    if (*s != '\0')
 	return(++s);
     return(NULL);
 }
@@ -374,8 +374,11 @@ assemble_args(struct author_data *data)
     len = 0;
     for (i = 0; i < data->num_in_args; i++) {
 	nas_arg = data->input_args[i];
-	if (strncmp(nas_arg, "cmd-arg", strlen("cmd-arg"))==0)
-	    len += strlen(value(nas_arg)) + 1;
+	if (strncmp(nas_arg, "cmd-arg", strlen("cmd-arg")) == 0) {
+	    v = value(nas_arg);
+	    if (v != NULL)
+		len += strlen(v) + 1;
+	}
     }
 
     if (len <= 0) {
@@ -395,9 +398,12 @@ assemble_args(struct author_data *data)
 	    free(buf);
 	    return(NULL);
 	}
-	strcat(buf, v);
-	if (i < (data->num_in_args - 1))
-	    strcat(buf, " ");
+	strncat(buf, v, len - 1);
+	len -= strlen(v);
+	if (i < (data->num_in_args - 1)) {
+	    strncat(buf, " ", len - 1);
+	    len -= 1;
+	}
     }
     return(buf);
 }
@@ -523,10 +529,12 @@ authorize_cmd(char *user, char *cmd, struct author_data *data)
 	match = regexec((regex_t *)node->value1, args, 0, NULL, 0);
 
 	if (debug & DEBUG_AUTHOR_FLAG) {
-	    report(LOG_INFO, "line %d compare %s %s '%s' & '%s' %smatch",
+	    report(LOG_INFO, "line %d compare %s %s '%s' & '%s' %s",
 		   node->line, cmd,
 		   node->type == N_permit ? "permit" : "deny",
-		   node->value, args, (match ? "" : "no "));
+		   node->value, args,
+		   (match == REG_NOMATCH ? "no match" :
+			     !match ? "match" : "regex failure"));
 	}
 
 	if (match == REG_NOMATCH)

@@ -1,8 +1,8 @@
-/* config.h.in.  Generated from configure.in by autoheader.  */
+/* config.h.in.  Generated from configure.ac by autoheader.  */
 
 
 #ifndef CONFIG_H
-#define CONFIG_H        1
+#define CONFIG_H	1
 
 
 /* define this to include support for RSA SecurID */
@@ -190,6 +190,9 @@
 /* define this if your o/s is NetBSD */
 #undef NETBSD
 
+/* Name of package */
+#undef PACKAGE
+
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
 
@@ -210,9 +213,6 @@
 
 /* define this to include profiling */
 #undef PROFILE
-
-/* Define to 1 if the C compiler supports function prototypes. */
-#undef PROTOTYPES
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
@@ -267,6 +267,9 @@
 /* define this if your waitpid() takes an union wait status pointer */
 #undef UNIONWAIT
 
+/* Version number of package */
+#undef VERSION
+
 /* define this to set pedantic gcc warnings */
 #undef WARN
 
@@ -285,9 +288,6 @@
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 #undef YYTEXT_POINTER
-
-/* Define like PROTOTYPES; this can be used by system headers. */
-#undef __PROTOTYPES
 
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const

@@ -200,6 +200,9 @@ author(u_char *pak)
 
     free(identity.username);
     free(identity.NAS_name);
+#ifdef ACLS
+    free(identity.NAS_ip);
+#endif
     free(identity.NAS_port);
     free(identity.NAC_address);
 }

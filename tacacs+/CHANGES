@@ -453,9 +453,31 @@ F4.0.4.26
 	  is inheritted.
 	- allow file authentication for PAP authorization
 
-F4.0.4.27a
+F4.0.4.27
 	- add "port" to clarify log messages of default_fn.c
 	- use program name (filename) instead of hard-coded "tac_plus" for
 	  name given to PAM
 	- change socket binding to allow an IPv6 address with the -B argument
 	- bind v4 and v6 sockets if system claims its has addresses for the AFs
+	- fix command authorization debug message logic for match/no match -
+	  reported by Dereck Chan 
+
+F4.0.4.28
+	- Fix buffer length argument to ntop() - Muhammad Muquit
+	- Fix two missing free()s
+	- Fix segfault from incorrect pointer returned from value().  Reported
+	  here:
+	  http://www.shrubbery.net/pipermail/tac_plus/2014-January/001384.html
+	- update autoconf bits for autoconf 2.69
+	- put tac_plus daemon in sbin, where it ought to be
+	- fix hdr->datalength handling in dump_nas_pak()
+	- add -m option to specify the client listen queue max and increase
+	  the default to 64 if the O/S does not define SOMAXCONN
+	- fix config.h include syntax - David M. Syzdek
+	- added -U and -Q flags to allow runtime setuid/setgid change - from
+	  from Robert Drake with some alteration
+	- Make implicit time_t conversions explicit in expire.c - from David M.
+	  Syzdek
+	- initialize newsockfd in main() - from David M. Syzdek
+	- recent changes in autoconf are causing the + of the package name to
+	  become -, so just drop it from the tarball name.
