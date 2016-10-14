@@ -37,34 +37,30 @@
  */
 void
 create_md5_hash(int session_id, char *key, u_char version, u_char seq_no,
-		u_char *prev_hash, u_char *hash)
+                u_char *prev_hash, u_char *hash)
 {
     u_char *md_stream, *mdp;
     int md_len;
     MD5_CTX mdcontext;
-
     md_len = sizeof(session_id) + strlen(key) + sizeof(version) +
-	sizeof(seq_no);
-
-    if (prev_hash) {
-	md_len += TAC_MD5_DIGEST_LEN;
+             sizeof(seq_no);
+    if(prev_hash)
+    {
+        md_len += TAC_MD5_DIGEST_LEN;
     }
     mdp = md_stream = (u_char *) tac_malloc(md_len);
     memcpy(mdp, &session_id, sizeof(session_id));
     mdp += sizeof(session_id);
-
     memcpy(mdp, key, strlen(key));
     mdp += strlen(key);
-
     memcpy(mdp, &version, sizeof(version));
     mdp += sizeof(version);
-
     memcpy(mdp, &seq_no, sizeof(seq_no));
     mdp += sizeof(seq_no);
-
-    if (prev_hash) {
-	memcpy(mdp, prev_hash, TAC_MD5_DIGEST_LEN);
-	mdp += TAC_MD5_DIGEST_LEN;
+    if(prev_hash)
+    {
+        memcpy(mdp, prev_hash, TAC_MD5_DIGEST_LEN);
+        mdp += TAC_MD5_DIGEST_LEN;
     }
     MD5Init(&mdcontext);
     MD5Update(&mdcontext, md_stream, md_len);
@@ -95,62 +91,63 @@ md5_xor(HDR *hdr, u_char *data, char *key)
     int session_id;
     u_char version;
     u_char seq_no;
-
     data_len = ntohl(hdr->datalength);
     session_id = hdr->session_id; /* always in network order for hashing */
     version = hdr->version;
     seq_no = hdr->seq_no;
-
-    if (!key)
-	return(0);
-
-    for (i = 0; i < data_len; i += 16) {
-	create_md5_hash(session_id, key, version, seq_no, prev_hashp, hash);
-
-	if (debug & DEBUG_MD5_HASH_FLAG) {
-	    int k;
-
-	    report(LOG_DEBUG,
-		   "hash: session_id=%u, key=%s, version=%d, seq_no=%d",
-		   session_id, key, version, seq_no);
-	    if (prev_hashp) {
-		report(LOG_DEBUG, "prev_hash:");
-		for (k = 0; k < TAC_MD5_DIGEST_LEN; k++)
-		    report(LOG_DEBUG, "0x%x", prev_hashp[k]);
-	    } else {
-		report(LOG_DEBUG, "no prev. hash");
-	    }
-
-	    report(LOG_DEBUG, "hash: ");
-	    for (k = 0; k < TAC_MD5_DIGEST_LEN; k++)
-		report(LOG_DEBUG, "0x%x", hash[k]);
-	}
-	memcpy(last_hash, hash, TAC_MD5_DIGEST_LEN);
-	prev_hashp = last_hash;
-
-	for (j = 0; j < 16; j++) {
-	    if ((i + j) >= data_len) {
-		if (hdr->flags & TAC_PLUS_UNENCRYPTED)
-		    hdr->flags &= ~TAC_PLUS_UNENCRYPTED;
-		else
-		    hdr->flags |= TAC_PLUS_UNENCRYPTED;
-		return(0);
-	    }
-	    if (debug & DEBUG_XOR_FLAG) {
-		report(LOG_DEBUG,
-		       "data[%d] = 0x%x, xor'ed with hash[%d] = 0x%x -> 0x%x\n",
-		       i + j,
-		       data[i + j],
-		       j,
-		       hash[j],
-		       data[i + j] ^ hash[j]);
-	    }			/* debug */
-	    data[i + j] ^= hash[j];
-	}
+    if(!key)
+        return(0);
+    for(i = 0; i < data_len; i += 16)
+    {
+        create_md5_hash(session_id, key, version, seq_no, prev_hashp, hash);
+        if(debug & DEBUG_MD5_HASH_FLAG)
+        {
+            int k;
+            report(LOG_DEBUG,
+                   "hash: session_id=%u, key=%s, version=%d, seq_no=%d",
+                   session_id, key, version, seq_no);
+            if(prev_hashp)
+            {
+                report(LOG_DEBUG, "prev_hash:");
+                for(k = 0; k < TAC_MD5_DIGEST_LEN; k++)
+                    report(LOG_DEBUG, "0x%x", prev_hashp[k]);
+            }
+            else
+            {
+                report(LOG_DEBUG, "no prev. hash");
+            }
+            report(LOG_DEBUG, "hash: ");
+            for(k = 0; k < TAC_MD5_DIGEST_LEN; k++)
+                report(LOG_DEBUG, "0x%x", hash[k]);
+        }
+        memcpy(last_hash, hash, TAC_MD5_DIGEST_LEN);
+        prev_hashp = last_hash;
+        for(j = 0; j < 16; j++)
+        {
+            if((i + j) >= data_len)
+            {
+                if(hdr->flags & TAC_PLUS_UNENCRYPTED)
+                    hdr->flags &= ~TAC_PLUS_UNENCRYPTED;
+                else
+                    hdr->flags |= TAC_PLUS_UNENCRYPTED;
+                return(0);
+            }
+            if(debug & DEBUG_XOR_FLAG)
+            {
+                report(LOG_DEBUG,
+                       "data[%d] = 0x%x, xor'ed with hash[%d] = 0x%x -> 0x%x\n",
+                       i + j,
+                       data[i + j],
+                       j,
+                       hash[j],
+                       data[i + j] ^ hash[j]);
+            }			/* debug */
+            data[i + j] ^= hash[j];
+        }
     }
-    if (hdr->flags & TAC_PLUS_UNENCRYPTED)
-	hdr->flags &= ~TAC_PLUS_UNENCRYPTED;
+    if(hdr->flags & TAC_PLUS_UNENCRYPTED)
+        hdr->flags &= ~TAC_PLUS_UNENCRYPTED;
     else
-	hdr->flags |= TAC_PLUS_UNENCRYPTED;
+        hdr->flags |= TAC_PLUS_UNENCRYPTED;
     return(0);
 }

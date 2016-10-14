@@ -84,37 +84,33 @@ static RETSIGTYPE
 die(int signum)
 {
     report(LOG_NOTICE, "Received signal %d, shutting down", signum);
-    if (childpid > 0)
-	unlink(pidfilebuf);
+    if(childpid > 0)
+        unlink(pidfilebuf);
     tac_exit(0);
 }
 
 static int
 init(void)
 {
-    if (initialised)
-	cfg_clean_config();
-
+    if(initialised)
+        cfg_clean_config();
     report(LOG_NOTICE, "Reading config");
-
-    if (!session.cfgfile) {
-	report(LOG_ERR, "no config file specified");
-	tac_exit(1);
+    if(!session.cfgfile)
+    {
+        report(LOG_ERR, "no config file specified");
+        tac_exit(1);
     }
-
     /* read the config file */
-    if (cfg_read_config(session.cfgfile)) {
-	report(LOG_ERR, "Parsing %s", session.cfgfile);
-	tac_exit(1);
+    if(cfg_read_config(session.cfgfile))
+    {
+        report(LOG_ERR, "Parsing %s", session.cfgfile);
+        tac_exit(1);
     }
-
-    if (session.acctfile == NULL && !(session.flags & SESS_FLAG_ACCTSYSL))
-	session.acctfile = tac_strdup(TACPLUS_ACCTFILE);
-
+    if(session.acctfile == NULL && !(session.flags & SESS_FLAG_ACCTSYSL))
+        session.acctfile = tac_strdup(TACPLUS_ACCTFILE);
     initialised++;
     reinitialize = 0;
     report(LOG_NOTICE, "Version %s Initialized %d", version, initialised);
-
     return 0;
 }
 
@@ -146,13 +142,13 @@ reapchild(int notused)
 #else
     int pid;
 #endif
-
-    for (;;) {
-	pid = wait3(&status, WNOHANG, 0);
-	if (pid <= 0)
-	    return;
-	if (debug & DEBUG_FORK_FLAG)
-	    report(LOG_DEBUG, "%ld reaped", (long)pid);
+    for(;;)
+    {
+        pid = wait3(&status, WNOHANG, 0);
+        if(pid <= 0)
+            return;
+        if(debug & DEBUG_FORK_FLAG)
+            report(LOG_DEBUG, "%ld reaped", (long)pid);
     }
 }
 #endif /* REAPCHILD */
@@ -167,10 +163,9 @@ get_socket(int **sa, int *nsa)
     char	host[NI_MAXHOST], serv[NI_MAXHOST];
     struct addrinfo hint, *res, *rp;
     int		ecode,
-		flag,
-		kalive = 1,
-		s;
-
+            flag,
+            kalive = 1,
+            s;
     memset(&hint, 0, sizeof(struct addrinfo));
     hint.ai_family = AF_UNSPEC;
     hint.ai_socktype = SOCK_STREAM;
@@ -179,81 +174,82 @@ get_socket(int **sa, int *nsa)
 #ifdef AI_ADDRCONFIG
     hint.ai_flags |= AI_ADDRCONFIG;
 #endif
-    if (bind_address)
-	ecode = getaddrinfo(bind_address, portstr, &hint, &res);
+    if(bind_address)
+        ecode = getaddrinfo(bind_address, portstr, &hint, &res);
     else
-	ecode = getaddrinfo(NULL, portstr, &hint, &res);
-    if (ecode != 0) {
-	report(LOG_ERR, "getaddrinfo: %s\n", gai_strerror(ecode));
-	tac_exit(1);
+        ecode = getaddrinfo(NULL, portstr, &hint, &res);
+    if(ecode != 0)
+    {
+        report(LOG_ERR, "getaddrinfo: %s\n", gai_strerror(ecode));
+        tac_exit(1);
     }
-
     *sa = NULL;
     *nsa = 0;
-    for (rp = res; rp != NULL; rp = rp->ai_next) {
-	s = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-	if (s == -1)
-	    continue;
-
-	if (1 || debug & DEBUG_PACKET_FLAG)
-	    report(LOG_DEBUG, "socket FD %d AF %d", s, rp->ai_family);
-	flag = 1;
+    for(rp = res; rp != NULL; rp = rp->ai_next)
+    {
+        s = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if(s == -1)
+            continue;
+        if(1 || debug & DEBUG_PACKET_FLAG)
+            report(LOG_DEBUG, "socket FD %d AF %d", s, rp->ai_family);
+        flag = 1;
 #ifdef IPV6_V6ONLY
-	if (rp->ai_family == AF_INET6)
-	    setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &flag, sizeof(flag));
+        if(rp->ai_family == AF_INET6)
+            setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &flag, sizeof(flag));
 #endif
 #ifdef SO_REUSEADDR
-	if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&flag,
-		       sizeof(flag)) < 0)
-	    perror("setsockopt - SO_REUSEADDR");
+        if(setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&flag,
+                      sizeof(flag)) < 0)
+            perror("setsockopt - SO_REUSEADDR");
 #endif
-	if (setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&kalive,
-		       sizeof(kalive)) < 0)
-	    perror("setsockopt - SO_KEEPALIVE");
-	flag = 0;
-	if (setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
-		       sizeof(flag)) < 0)
-	    perror("setsockopt - SO_NODELAY");
-
-	if (bind(s, rp->ai_addr, rp->ai_addrlen) < 0) {
-	    console = 1;
-	    ecode = errno;
-	    if (lookup_peer)
-		flag = 0;
-	    else
-		flag = NI_NUMERICHOST | NI_NUMERICSERV;
-	    if (getnameinfo(rp->ai_addr, rp->ai_addrlen, host, NI_MAXHOST,
-			    serv, NI_MAXHOST, flag)) {
-		strncpy(host, "unknown", NI_MAXHOST - 1);
-		host[NI_MAXHOST - 1] = '\0';
-		strncpy(serv, "unknown", NI_MAXHOST - 1);
-		serv[NI_MAXHOST - 1] = '\0';
-	    }
-	    report(LOG_ERR, "get_socket: bind %s:%s %s", host, serv,
-		   strerror(ecode));
-	    console = 0;
-	    close(s);
-	    s = -1;
-	    continue;
-	}
-	if (*sa == NULL)
-	    *sa = malloc(sizeof(int) * ++(*nsa));
-	else
-	    *sa = realloc(*sa, sizeof(int) * ++(*nsa));
-	if (*sa == NULL) {
-	    report(LOG_ERR, "malloc failure: %s", strerror(errno));
-	    tac_exit(1);
-	}
-	(*sa)[*nsa - 1] = s;
+        if(setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, (void *)&kalive,
+                      sizeof(kalive)) < 0)
+            perror("setsockopt - SO_KEEPALIVE");
+        flag = 0;
+        if(setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&flag,
+                      sizeof(flag)) < 0)
+            perror("setsockopt - SO_NODELAY");
+        if(bind(s, rp->ai_addr, rp->ai_addrlen) < 0)
+        {
+            console = 1;
+            ecode = errno;
+            if(lookup_peer)
+                flag = 0;
+            else
+                flag = NI_NUMERICHOST | NI_NUMERICSERV;
+            if(getnameinfo(rp->ai_addr, rp->ai_addrlen, host, NI_MAXHOST,
+                           serv, NI_MAXHOST, flag))
+            {
+                strncpy(host, "unknown", NI_MAXHOST - 1);
+                host[NI_MAXHOST - 1] = '\0';
+                strncpy(serv, "unknown", NI_MAXHOST - 1);
+                serv[NI_MAXHOST - 1] = '\0';
+            }
+            report(LOG_ERR, "get_socket: bind %s:%s %s", host, serv,
+                   strerror(ecode));
+            console = 0;
+            close(s);
+            s = -1;
+            continue;
+        }
+        if(*sa == NULL)
+            *sa = malloc(sizeof(int) * ++(*nsa));
+        else
+            *sa = realloc(*sa, sizeof(int) * ++(*nsa));
+        if(*sa == NULL)
+        {
+            report(LOG_ERR, "malloc failure: %s", strerror(errno));
+            tac_exit(1);
+        }
+        (*sa)[*nsa - 1] = s;
     }
     freeaddrinfo(res);
-
-    if (*nsa < 1) {
-	console = 1;
-	report(LOG_ERR, "get_socket: could not bind a listening socket");
-	tac_exit(1);
+    if(*nsa < 1)
+    {
+        console = 1;
+        report(LOG_ERR, "get_socket: could not bind a listening socket");
+        tac_exit(1);
     }
-
     return(0);
 }
 
@@ -275,233 +271,222 @@ main(int argc, char **argv)
     FILE *fp;
     int	c, *s, ns, somaxconn;
     struct pollfd *pfds;
-
 #ifndef SOMAXCONN
 # define SOMAXCONN 64
 #endif
     somaxconn = SOMAXCONN;
-
 #if PROFILE
     moncontrol(0);
 #endif
-
-    if ((progname = strrchr(*argv, '/')) != NULL) {
-	progname++;
-    } else
-	progname = *argv;
-
+    if((progname = strrchr(*argv, '/')) != NULL)
+    {
+        progname++;
+    }
+    else
+        progname = *argv;
     /* initialise global session data */
     memset(&session, 0, sizeof(session));
     session.peer = tac_strdup("unknown");
-
     open_logfile();
-
-    if (argc <= 1) {
-	usage();
-	tac_exit(1);
+    if(argc <= 1)
+    {
+        usage();
+        tac_exit(1);
     }
-
-    while ((c = getopt(argc, argv, "B:C:d:hiPp:Q:tGgvSsLl:m:w:U:u:")) != EOF)
-	switch (c) {
-	case 'B':		/* bind() address*/
-	    bind_address = optarg;
-	    break;
-	case 'L':		/* lookup peer names via DNS */
-	    lookup_peer = 1;
-	    break;
-	case 's':		/* don't respond to sendpass */
-	    sendauth_only = 1;
-	    break;
-	case 'v':		/* print version and exit */
-	    vers();
-	    tac_exit(1);
-	case 't':
-	    console = 1;	/* log to console too */
-	    break;
-	case 'P':		/* Parse config file only */
-	    parse_only = 1;
-	    break;
-	case 'G':		/* foreground */
-	    opt_G = 1;
-	    break;
-	case 'g':		/* single threaded */
-	    single = 1;
-	    break;
-	case 'p':		/* port */
-	    port = atoi(optarg);
-	    portstr = optarg;
-	    break;
-	case 'd':		/* debug */
-	    debug |= atoi(optarg);
-	    break;
-	case 'C':		/* config file name */
-	    session.cfgfile = tac_strdup(optarg);
-	    break;
-	case 'h':		/* usage */
-	    usage();
-	    tac_exit(0);
-	case 'i':		/* inetd mode */
-	    standalone = 0;
-	    break;
-	case 'l':		/* logfile */
-	    logfile = tac_strdup(optarg);
-	    break;
-	case 'm':		/* SOMAXCONN */
-	    somaxconn = atoi(optarg);
-	    break;
-	case 'Q':		/* setgid */
-	    opt_Q = tac_strdup(optarg);
-	    break;
-	case 'S':		/* enable single-connection */
-	    opt_S = 1;
-	    break;
+    while((c = getopt(argc, argv, "B:C:d:hiPp:Q:tGgvSsLl:m:w:U:u:")) != EOF)
+        switch(c)
+        {
+            case 'B':		/* bind() address*/
+                bind_address = optarg;
+                break;
+            case 'L':		/* lookup peer names via DNS */
+                lookup_peer = 1;
+                break;
+            case 's':		/* don't respond to sendpass */
+                sendauth_only = 1;
+                break;
+            case 'v':		/* print version and exit */
+                vers();
+                tac_exit(1);
+            case 't':
+                console = 1;	/* log to console too */
+                break;
+            case 'P':		/* Parse config file only */
+                parse_only = 1;
+                break;
+            case 'G':		/* foreground */
+                opt_G = 1;
+                break;
+            case 'g':		/* single threaded */
+                single = 1;
+                break;
+            case 'p':		/* port */
+                port = atoi(optarg);
+                portstr = optarg;
+                break;
+            case 'd':		/* debug */
+                debug |= atoi(optarg);
+                break;
+            case 'C':		/* config file name */
+                session.cfgfile = tac_strdup(optarg);
+                break;
+            case 'h':		/* usage */
+                usage();
+                tac_exit(0);
+            case 'i':		/* inetd mode */
+                standalone = 0;
+                break;
+            case 'l':		/* logfile */
+                logfile = tac_strdup(optarg);
+                break;
+            case 'm':		/* SOMAXCONN */
+                somaxconn = atoi(optarg);
+                break;
+            case 'Q':		/* setgid */
+                opt_Q = tac_strdup(optarg);
+                break;
+            case 'S':		/* enable single-connection */
+                opt_S = 1;
+                break;
 #ifdef MAXSESS
-	case 'w':		/* wholog file */
-	    wholog = tac_strdup(optarg);
-	    break;
+            case 'w':		/* wholog file */
+                wholog = tac_strdup(optarg);
+                break;
 #endif
-	case 'U':		/* setuid */
-	    opt_U = tac_strdup(optarg);
-	    break;
-	case 'u':
-	    wtmpfile = tac_strdup(optarg);
-	    break;
-
-	default:
-	    fprintf(stderr, "%s: bad switch %c\n", progname, c);
-	    usage();
-	    tac_exit(1);
-	}
-
+            case 'U':		/* setuid */
+                opt_U = tac_strdup(optarg);
+                break;
+            case 'u':
+                wtmpfile = tac_strdup(optarg);
+                break;
+            default:
+                fprintf(stderr, "%s: bad switch %c\n", progname, c);
+                usage();
+                tac_exit(1);
+        }
     parser_init();
-
     /* read the configuration/etc */
     init();
-
     signal(SIGUSR1, handler);
     signal(SIGHUP, handler);
     signal(SIGTERM, die);
     signal(SIGPIPE, SIG_IGN);
-
-    if (parse_only)
-	tac_exit(0);
-
-    if (debug)
-	report(LOG_DEBUG, "tac_plus server %s starting", version);
-
-    if (!standalone) {
-	/* running under inetd */
-	char host[NI_MAXHOST];
-	int on;
-	struct sockaddr_in name;
-	socklen_t name_len;
-
-	name_len = sizeof(name);
-	session.flags |= SESS_NO_SINGLECONN;
-
-	session.sock = 0;
-	if (getpeername(session.sock, (struct sockaddr *)&name, &name_len)) {
-	    report(LOG_ERR, "getpeername failure %s", strerror(errno));
-	} else {
-	    if (lookup_peer)
-		on = 0;
-	    else
-		on = NI_NUMERICHOST;
-	    if (getnameinfo((struct sockaddr *)&name, name_len, host,
-			    NI_MAXHOST, NULL, 0, on)) {
-		strncpy(host, "unknown", NI_MAXHOST - 1);
-		host[NI_MAXHOST - 1] = '\0';
-	    }
-	    if (session.peer) {
-		free(session.peer);
-	    }
-	    session.peer = tac_strdup(host);
-
-	    if (session.peerip)
-		free(session.peerip);
-	    session.peerip = tac_strdup((char *)inet_ntop(name.sin_family,
-					&name.sin_addr, host, NI_MAXHOST));
-	    if (debug & DEBUG_AUTHEN_FLAG)
-		report(LOG_INFO, "session.peerip is %s", session.peerip);
-	}
+    if(parse_only)
+        tac_exit(0);
+    if(debug)
+        report(LOG_DEBUG, "tac_plus server %s starting", version);
+    if(!standalone)
+    {
+        /* running under inetd */
+        char host[NI_MAXHOST];
+        int on;
+        struct sockaddr_in name;
+        socklen_t name_len;
+        name_len = sizeof(name);
+        session.flags |= SESS_NO_SINGLECONN;
+        session.sock = 0;
+        if(getpeername(session.sock, (struct sockaddr *)&name, &name_len))
+        {
+            report(LOG_ERR, "getpeername failure %s", strerror(errno));
+        }
+        else
+        {
+            if(lookup_peer)
+                on = 0;
+            else
+                on = NI_NUMERICHOST;
+            if(getnameinfo((struct sockaddr *)&name, name_len, host,
+                           NI_MAXHOST, NULL, 0, on))
+            {
+                strncpy(host, "unknown", NI_MAXHOST - 1);
+                host[NI_MAXHOST - 1] = '\0';
+            }
+            if(session.peer)
+            {
+                free(session.peer);
+            }
+            session.peer = tac_strdup(host);
+            if(session.peerip)
+                free(session.peerip);
+            session.peerip = tac_strdup((char *)inet_ntop(name.sin_family,
+                                        &name.sin_addr, host, NI_MAXHOST));
+            if(debug & DEBUG_AUTHEN_FLAG)
+                report(LOG_INFO, "session.peerip is %s", session.peerip);
+        }
 #ifdef FIONBIO
-	on = 1;
-	if (ioctl(session.sock, FIONBIO, &on) < 0) {
-	    report(LOG_ERR, "ioctl(FIONBIO) %s", strerror(errno));
-	    tac_exit(1);
-	}
+        on = 1;
+        if(ioctl(session.sock, FIONBIO, &on) < 0)
+        {
+            report(LOG_ERR, "ioctl(FIONBIO) %s", strerror(errno));
+            tac_exit(1);
+        }
 #endif
-	start_session();
-	tac_exit(0);
+        start_session();
+        tac_exit(0);
     }
-
-    if (single) {
-	session.flags |= SESS_NO_SINGLECONN;
-    } else {
-	/*
-	 * Running standalone; background ourselves and release controlling
-	 * tty, unless -G option was specified to keep the parent in the
-	 * foreground.
-	 */
+    if(single)
+    {
+        session.flags |= SESS_NO_SINGLECONN;
+    }
+    else
+    {
+        /*
+         * Running standalone; background ourselves and release controlling
+         * tty, unless -G option was specified to keep the parent in the
+         * foreground.
+         */
 #ifdef SIGTTOU
-	signal(SIGTTOU, SIG_IGN);
+        signal(SIGTTOU, SIG_IGN);
 #endif
 #ifdef SIGTTIN
-	signal(SIGTTIN, SIG_IGN);
+        signal(SIGTTIN, SIG_IGN);
 #endif
 #ifdef SIGTSTP
-	signal(SIGTSTP, SIG_IGN);
+        signal(SIGTSTP, SIG_IGN);
 #endif
-	if (!opt_S)
-	    session.flags |= SESS_NO_SINGLECONN;
-
-	if (!opt_G) {
-	    if ((childpid = fork()) < 0)
-		report(LOG_ERR, "Can't fork first child");
-	    else if (childpid > 0)
-		exit(0);		/* parent */
-
-	    if (debug)
-		report(LOG_DEBUG, "Backgrounded");
-
+        if(!opt_S)
+            session.flags |= SESS_NO_SINGLECONN;
+        if(!opt_G)
+        {
+            if((childpid = fork()) < 0)
+                report(LOG_ERR, "Can't fork first child");
+            else if(childpid > 0)
+                exit(0);		/* parent */
+            if(debug)
+                report(LOG_DEBUG, "Backgrounded");
 #if SETPGRP_VOID
-	    if (setpgrp() == -1)
+            if(setpgrp() == -1)
 #else
-	    if (setpgrp(0, getpid()) == -1)
+            if(setpgrp(0, getpid()) == -1)
 #endif /* SETPGRP_VOID */
-		report(LOG_ERR, "Can't change process group: %s",
-		       strerror(errno));
-
-	    /* XXX What does "REAPCHILD" have to do with TIOCNOTTY? */
+                report(LOG_ERR, "Can't change process group: %s",
+                       strerror(errno));
+            /* XXX What does "REAPCHILD" have to do with TIOCNOTTY? */
 #ifndef REAPCHILD
-	    c = open("/dev/tty", O_RDWR);
-	    if (c >= 0) {
-		ioctl(c, TIOCNOTTY, (char *)0);
-		(void) close(c);
-	    }
+            c = open("/dev/tty", O_RDWR);
+            if(c >= 0)
+            {
+                ioctl(c, TIOCNOTTY, (char *)0);
+                (void) close(c);
+            }
 #else /* REAPCHILD */
-	    if ((childpid = fork()) < 0)
-		report(LOG_ERR, "Can't fork second child");
-	    else if (childpid > 0)
-		exit(0);
-
-	    if (debug & DEBUG_FORK_FLAG)
-		report(LOG_DEBUG, "Forked grandchild");
-
+            if((childpid = fork()) < 0)
+                report(LOG_ERR, "Can't fork second child");
+            else if(childpid > 0)
+                exit(0);
+            if(debug & DEBUG_FORK_FLAG)
+                report(LOG_DEBUG, "Forked grandchild");
 #endif /* REAPCHILD */
-
-	    /* some systems require this */
-	    closelog();
-
-	    for (c = getdtablesize(); c >= 0; c--)
-		(void)close(c);
-
-	    /*
-	     * make sure we can still log to syslog now that we have closed
-	     * everything
-	     */
-	    open_logfile();
-	}
+            /* some systems require this */
+            closelog();
+            for(c = getdtablesize(); c >= 0; c--)
+                (void)close(c);
+            /*
+             * make sure we can still log to syslog now that we have closed
+             * everything
+             */
+            open_logfile();
+        }
     }
 #if REAPCHILD
 #if REAPSIGIGN
@@ -510,221 +495,239 @@ main(int argc, char **argv)
     signal(SIGCHLD, SIG_IGN);
 #endif
 #endif
-
     ostream = NULL;
     /* chdir("/"); */
     umask(022);
     errno = 0;
-
     get_socket(&s, &ns);
-
-    for (c = 0; c < ns; c++) {
-	if (listen(s[c], somaxconn) < 0) {
-	    console = 1;
-	    report(LOG_ERR, "listen: %s", strerror(errno));
-	    tac_exit(1);
-	}
+    for(c = 0; c < ns; c++)
+    {
+        if(listen(s[c], somaxconn) < 0)
+        {
+            console = 1;
+            report(LOG_ERR, "listen: %s", strerror(errno));
+            tac_exit(1);
+        }
     }
-
-    if (port == TAC_PLUS_PORT) {
-	if (bind_address == NULL) {
-	    strncpy(pidfilebuf, TACPLUS_PIDFILE, PIDSZ);
-	    if (pidfilebuf[PIDSZ - 1] != '\0')
-		c = PIDSZ;
-	    else
-		c = PIDSZ - 1;
-	} else
-	    c = snprintf(pidfilebuf, PIDSZ, "%s.%s", TACPLUS_PIDFILE,
-			 bind_address);
-    } else {
-	if (bind_address == NULL)
-	    c = snprintf(pidfilebuf, PIDSZ, "%s.%d", TACPLUS_PIDFILE, port);
-	else
-	    c = snprintf(pidfilebuf, PIDSZ, "%s.%s.%d", TACPLUS_PIDFILE,
-			 bind_address, port);
+    if(port == TAC_PLUS_PORT)
+    {
+        if(bind_address == NULL)
+        {
+            strncpy(pidfilebuf, TACPLUS_PIDFILE, PIDSZ);
+            if(pidfilebuf[PIDSZ - 1] != '\0')
+                c = PIDSZ;
+            else
+                c = PIDSZ - 1;
+        }
+        else
+            c = snprintf(pidfilebuf, PIDSZ, "%s.%s", TACPLUS_PIDFILE,
+                         bind_address);
     }
-    if (c >= PIDSZ) {
-	pidfilebuf[PIDSZ - 1] = '\0';
-	report(LOG_ERR, "pid filename truncated: %s", pidfilebuf);
-	childpid = 0;
-    } else {
-	/* write process id to pidfile */
-	if ((fp = fopen(pidfilebuf, "w")) != NULL) {
-	    fprintf(fp, "%d\n", (int)getpid());
-	    fclose(fp);
-	    /*
-	     * After forking to disassociate; make sure we know we're the
-	     * mother so that we remove our pid file upon exit in die().
-	     */
-	    childpid = 1;
-	} else {
-	    report(LOG_ERR, "Cannot write pid to %s %s", pidfilebuf,
-		   strerror(errno));
-	    childpid = 0;
-	}
+    else
+    {
+        if(bind_address == NULL)
+            c = snprintf(pidfilebuf, PIDSZ, "%s.%d", TACPLUS_PIDFILE, port);
+        else
+            c = snprintf(pidfilebuf, PIDSZ, "%s.%s.%d", TACPLUS_PIDFILE,
+                         bind_address, port);
     }
-
-    if (opt_Q) {
-	struct group *gr;
-	if ((gr = getgrnam(opt_Q)) == NULL) {
-	    report(LOG_ERR, "Could set groupid to %s: %s", opt_Q,
-		   strerror(errno));
-        } else if (setgid(gr->gr_gid)) {
-	    report(LOG_ERR, "Cannot set group id to %d %s",
-		   gr->gr_gid, strerror(errno));
-	}
+    if(c >= PIDSZ)
+    {
+        pidfilebuf[PIDSZ - 1] = '\0';
+        report(LOG_ERR, "pid filename truncated: %s", pidfilebuf);
+        childpid = 0;
+    }
+    else
+    {
+        /* write process id to pidfile */
+        if((fp = fopen(pidfilebuf, "w")) != NULL)
+        {
+            fprintf(fp, "%d\n", (int)getpid());
+            fclose(fp);
+            /*
+             * After forking to disassociate; make sure we know we're the
+             * mother so that we remove our pid file upon exit in die().
+             */
+            childpid = 1;
+        }
+        else
+        {
+            report(LOG_ERR, "Cannot write pid to %s %s", pidfilebuf,
+                   strerror(errno));
+            childpid = 0;
+        }
+    }
+    if(opt_Q)
+    {
+        struct group *gr;
+        if((gr = getgrnam(opt_Q)) == NULL)
+        {
+            report(LOG_ERR, "Could set groupid to %s: %s", opt_Q,
+                   strerror(errno));
+        }
+        else if(setgid(gr->gr_gid))
+        {
+            report(LOG_ERR, "Cannot set group id to %d %s",
+                   gr->gr_gid, strerror(errno));
+        }
     }
 #ifdef TACPLUS_GROUPID
-      else if (setgid(TACPLUS_GROUPID))
-	report(LOG_ERR, "Cannot set group id to %d %s",
-	       TACPLUS_GROUPID, strerror(errno));
+    else if(setgid(TACPLUS_GROUPID))
+        report(LOG_ERR, "Cannot set group id to %d %s",
+               TACPLUS_GROUPID, strerror(errno));
 #endif
-
-    if (opt_U) {
-	struct passwd *pw;
-	if ((pw = getpwnam(opt_U)) == NULL) {
-	    report(LOG_ERR, "Could not find username %s: %s", opt_U,
-		   strerror(errno));
-	} else if (setuid(pw->pw_uid)) {
-		report(LOG_ERR, "Cannot set user id to %d %s",
-		       pw->pw_uid, strerror(errno));
-	}
+    if(opt_U)
+    {
+        struct passwd *pw;
+        if((pw = getpwnam(opt_U)) == NULL)
+        {
+            report(LOG_ERR, "Could not find username %s: %s", opt_U,
+                   strerror(errno));
+        }
+        else if(setuid(pw->pw_uid))
+        {
+            report(LOG_ERR, "Cannot set user id to %d %s",
+                   pw->pw_uid, strerror(errno));
+        }
     }
 #ifdef TACPLUS_USERID
-      else if (setuid(TACPLUS_USERID))
-	report(LOG_ERR, "Cannot set user id to %d %s",
-	       TACPLUS_USERID, strerror(errno));
+    else if(setuid(TACPLUS_USERID))
+        report(LOG_ERR, "Cannot set user id to %d %s",
+               TACPLUS_USERID, strerror(errno));
 #endif
-
 #ifdef MAXSESS
     maxsess_loginit();
 #endif /* MAXSESS */
-
     report(LOG_DEBUG, "uid=%d euid=%d gid=%d egid=%d s=%d",
-	   getuid(), geteuid(), getgid(), getegid(), s);
-
+           getuid(), geteuid(), getgid(), getegid(), s);
     pfds = malloc(sizeof(struct pollfd) * ns);
-    if (pfds == NULL) {
-	report(LOG_ERR, "malloc failure: %s", strerror(errno));
-	tac_exit(1);
+    if(pfds == NULL)
+    {
+        report(LOG_ERR, "malloc failure: %s", strerror(errno));
+        tac_exit(1);
     }
-    for (c = 0; c < ns; c++) {
-	pfds[c].fd = s[c];
-	pfds[c].events = POLLIN | POLLERR | POLLHUP | POLLNVAL;
+    for(c = 0; c < ns; c++)
+    {
+        pfds[c].fd = s[c];
+        pfds[c].events = POLLIN | POLLERR | POLLHUP | POLLNVAL;
     }
-
-    for (;;) {
+    for(;;)
+    {
 #if HAVE_PID_T
-	pid_t pid;
+        pid_t pid;
 #else
-	int pid;
+        int pid;
 #endif
-	char host[NI_MAXHOST];
-	struct sockaddr_in from;
-	socklen_t from_len;
-	int newsockfd = -1;
-	int flags, status;
-
-	if (reinitialize)
-	    init();
-
-	status = poll(pfds, ns, TAC_PLUS_ACCEPT_TIMEOUT * 1000);
-	if (status == 0)
-	    continue;
-	if (status == -1)
-	    if (errno == EINTR)
-		continue;
-
-	memset((char *)&from, 0, sizeof(from));
-	from_len = sizeof(from);
-	for (c = 0; c < ns; c++) {
-	    if (pfds[c].revents & POLLIN)
-		newsockfd = accept(s[c], (struct sockaddr *)&from, &from_len);
-	    else if (pfds[c].revents & (POLLERR | POLLHUP | POLLNVAL)) {
-		report(LOG_ERR, "exception on listen FD %d", s[c]);
-		tac_exit(1);
-	    }
-	}
-
-	if (newsockfd < 0) {
-	    if (errno == EINTR)
-		continue;
-
-	    report(LOG_ERR, "accept: %s", strerror(errno));
-	    continue;
-	}
-
-	if (lookup_peer)
-	    flags = 0;
-	else
-	    flags = NI_NUMERICHOST;
-	if (getnameinfo((struct sockaddr *)&from, from_len, host, NI_MAXHOST,
-			NULL, 0, flags)) {
-	    strncpy(host, "unknown", NI_MAXHOST - 1);
-	    host[NI_MAXHOST - 1] = '\0';
-	}
-
-	if (session.peer) {
-	    free(session.peer);
-	}
-	session.peer = tac_strdup(host);
-
-	if (session.peerip)
-	    free(session.peerip);
-	session.peerip = tac_strdup((char *)inet_ntop(from.sin_family,
-				    &from.sin_addr, host, NI_MAXHOST));
-	if (debug & DEBUG_PACKET_FLAG)
-	    report(LOG_DEBUG, "session request from %s sock=%d",
-		   session.peer, newsockfd);
-
-	if (!single) {
-	    pid = fork();
-
-	    if (pid < 0) {
-		report(LOG_ERR, "fork error");
-		tac_exit(1);
-	    }
-	} else {
-	    pid = 0;
-	}
-
-	if (pid == 0) {
-	    /* child */
-	    if (!single)
-		for (c = 0; c < ns; c++)
-		    close(s[c]);
-	    session.sock = newsockfd;
+        char host[NI_MAXHOST];
+        struct sockaddr_in from;
+        socklen_t from_len;
+        int newsockfd = -1;
+        int flags, status;
+        if(reinitialize)
+            init();
+        status = poll(pfds, ns, TAC_PLUS_ACCEPT_TIMEOUT * 1000);
+        if(status == 0)
+            continue;
+        if(status == -1)
+            if(errno == EINTR)
+                continue;
+        memset((char *)&from, 0, sizeof(from));
+        from_len = sizeof(from);
+        for(c = 0; c < ns; c++)
+        {
+            if(pfds[c].revents & POLLIN)
+                newsockfd = accept(s[c], (struct sockaddr *)&from, &from_len);
+            else if(pfds[c].revents & (POLLERR | POLLHUP | POLLNVAL))
+            {
+                report(LOG_ERR, "exception on listen FD %d", s[c]);
+                tac_exit(1);
+            }
+        }
+        if(newsockfd < 0)
+        {
+            if(errno == EINTR)
+                continue;
+            report(LOG_ERR, "accept: %s", strerror(errno));
+            continue;
+        }
+        if(lookup_peer)
+            flags = 0;
+        else
+            flags = NI_NUMERICHOST;
+        if(getnameinfo((struct sockaddr *)&from, from_len, host, NI_MAXHOST,
+                       NULL, 0, flags))
+        {
+            strncpy(host, "unknown", NI_MAXHOST - 1);
+            host[NI_MAXHOST - 1] = '\0';
+        }
+        if(session.peer)
+        {
+            free(session.peer);
+        }
+        session.peer = tac_strdup(host);
+        if(session.peerip)
+            free(session.peerip);
+        session.peerip = tac_strdup((char *)inet_ntop(from.sin_family,
+                                    &from.sin_addr, host, NI_MAXHOST));
+        if(debug & DEBUG_PACKET_FLAG)
+            report(LOG_DEBUG, "session request from %s sock=%d",
+                   session.peer, newsockfd);
+        if(!single)
+        {
+            pid = fork();
+            if(pid < 0)
+            {
+                report(LOG_ERR, "fork error");
+                tac_exit(1);
+            }
+        }
+        else
+        {
+            pid = 0;
+        }
+        if(pid == 0)
+        {
+            /* child */
+            if(!single)
+                for(c = 0; c < ns; c++)
+                    close(s[c]);
+            session.sock = newsockfd;
 #ifdef LIBWRAP
-	    if (! hosts_ctl(progname,session.peer,session.peerip,progname)) {
-		report(LOG_ALERT, "refused connection from %s [%s]",
-		       session.peer, session.peerip);
-		shutdown(session.sock, 2);
-		close(session.sock);
-		if (!single) {
-		    tac_exit(0);
-		} else {
-		    close(session.sock);
-		    continue;
-		}
-	    }
-	    report(LOG_INFO, "connect from %s [%s]", session.peer,
-		   session.peerip);
+            if(! hosts_ctl(progname, session.peer, session.peerip, progname))
+            {
+                report(LOG_ALERT, "refused connection from %s [%s]",
+                       session.peer, session.peerip);
+                shutdown(session.sock, 2);
+                close(session.sock);
+                if(!single)
+                {
+                    tac_exit(0);
+                }
+                else
+                {
+                    close(session.sock);
+                    continue;
+                }
+            }
+            report(LOG_INFO, "connect from %s [%s]", session.peer,
+                   session.peerip);
 #endif
 #if PROFILE
-	    moncontrol(1);
+            moncontrol(1);
 #endif
-
-	    start_session();
-	    shutdown(session.sock, 2);
-	    close(session.sock);
-	    if (!single)
-		tac_exit(0);
-	} else {
-	    if (debug & DEBUG_FORK_FLAG)
-		report(LOG_DEBUG, "forked %ld", (long)pid);
-	    /* parent */
-	    close(newsockfd);
-	}
+            start_session();
+            shutdown(session.sock, 2);
+            close(session.sock);
+            if(!single)
+                tac_exit(0);
+        }
+        else
+        {
+            if(debug & DEBUG_FORK_FLAG)
+                report(LOG_DEBUG, "forked %ld", (long)pid);
+            /* parent */
+            close(newsockfd);
+        }
     }
 }
 
@@ -741,25 +744,24 @@ int
 bad_version_check(u_char *pak)
 {
     HDR *hdr = (HDR *)pak;
-
-    switch (hdr->type) {
-    case TAC_PLUS_AUTHEN:
-	/*
-	 * Let authen routines take care of more sophisticated version
-	 * checking as its now a bit involved.
-	 */
-	return(0);
-
-    case TAC_PLUS_AUTHOR:
-    case TAC_PLUS_ACCT:
-	if (hdr->version != TAC_PLUS_VER_0) {
-	    send_error_reply(hdr->type, "Illegal packet version");
-	    return(1);
-	}
-	return(0);
-
-    default:
-	return(1);
+    switch(hdr->type)
+    {
+        case TAC_PLUS_AUTHEN:
+            /*
+             * Let authen routines take care of more sophisticated version
+             * checking as its now a bit involved.
+             */
+            return(0);
+        case TAC_PLUS_AUTHOR:
+        case TAC_PLUS_ACCT:
+            if(hdr->version != TAC_PLUS_VER_0)
+            {
+                send_error_reply(hdr->type, "Illegal packet version");
+                return(1);
+            }
+            return(0);
+        default:
+            return(1);
     }
 }
 
@@ -772,86 +774,80 @@ start_session(void)
 {
     u_char *pak;
     HDR *hdr;
-
-    do {
-	session.seq_no = 0;
-	session.aborted = 0;
-	session.version = 0;
-
-	pak = read_packet();
-	if (pak == NULL)
-	    break;
-
-	if (debug & DEBUG_PACKET_FLAG) {
-	    report(LOG_DEBUG, "validation request from %s", session.peer);
-	    dump_nas_pak(pak);
-	}
-	hdr = (HDR *)pak;
-
-	session.session_id = ntohl(hdr->session_id);
-
-	/* Do some version checking */
-	if (bad_version_check(pak)) {
-	    free(pak);
-	    break;
-	}
-
-	switch (hdr->type) {
-	case TAC_PLUS_AUTHEN:
-	    authen(pak);
-	    free(pak);
-	    break;
-
-	case TAC_PLUS_AUTHOR:
-	    author(pak);
-	    free(pak);
-	    break;
-
-	case TAC_PLUS_ACCT:
-	    accounting(pak);
-	    free(pak);
-	    break;
-
-	default:
-	    /* Note: can't send error reply if type is unknown */
-	    report(LOG_ERR, "Illegal type %d in received packet", hdr->type);
-	    free(pak);
-	    goto OUT;
-	}
-    } while (!(session.flags & SESS_NO_SINGLECONN) &&
-	     session.peerflags & TAC_PLUS_SINGLE_CONNECT_FLAG);
-
+    do
+    {
+        session.seq_no = 0;
+        session.aborted = 0;
+        session.version = 0;
+        pak = read_packet();
+        if(pak == NULL)
+            break;
+        if(debug & DEBUG_PACKET_FLAG)
+        {
+            report(LOG_DEBUG, "validation request from %s", session.peer);
+            dump_nas_pak(pak);
+        }
+        hdr = (HDR *)pak;
+        session.session_id = ntohl(hdr->session_id);
+        /* Do some version checking */
+        if(bad_version_check(pak))
+        {
+            free(pak);
+            break;
+        }
+        switch(hdr->type)
+        {
+            case TAC_PLUS_AUTHEN:
+                authen(pak);
+                free(pak);
+                break;
+            case TAC_PLUS_AUTHOR:
+                author(pak);
+                free(pak);
+                break;
+            case TAC_PLUS_ACCT:
+                accounting(pak);
+                free(pak);
+                break;
+            default:
+                /* Note: can't send error reply if type is unknown */
+                report(LOG_ERR, "Illegal type %d in received packet", hdr->type);
+                free(pak);
+                goto OUT;
+        }
+    }
+    while(!(session.flags & SESS_NO_SINGLECONN) &&
+          session.peerflags & TAC_PLUS_SINGLE_CONNECT_FLAG);
 OUT:
-    if (debug & DEBUG_PACKET_FLAG)
-	report(LOG_DEBUG, "%s: disconnect", session.peer);
+    if(debug & DEBUG_PACKET_FLAG)
+        report(LOG_DEBUG, "%s: disconnect", session.peer);
 }
 
 void
 usage(void)
 {
     fprintf(stderr, "Usage: tac_plus -C <config_file> [-GghiLPstv]"
-		" [-B <bind address>]"
-		" [-d <debug level>]"
-		" [-l <logfile>]"
-		" [-p <port>]"
-		" [-Q <setgid groupname>]"
-		" [-U <setuid username>]"
-		" [-u <wtmpfile>]"
+            " [-B <bind address>]"
+            " [-d <debug level>]"
+            " [-l <logfile>]"
+            " [-p <port>]"
+            " [-Q <setgid groupname>]"
+            " [-U <setuid username>]"
+            " [-u <wtmpfile>]"
 #ifdef MAXSESS
-		" [-w <whologfile>]"
+            " [-w <whologfile>]"
 #endif
-		"\n");
+            "\n");
     fprintf(stderr, "\t-G\tstay in foreground; do not detach from the tty\n"
-		"\t-g\tsingle thread mode\n"
-		"\t-h\tdisplay this message\n"
-		"\t-i\tinetd mode\n"
-		"\t-L\tlookup peer addresses for logs\n"
-		"\t-P\tparse the configuration file and exit\n"
-		"\t-S\tenable single-connection\n"
-		"\t-s\trefuse SENDPASS\n"
-		"\t-t\talso log to /dev/console\n"
-		"\t-v\tdisplay version information\n");
-
+            "\t-g\tsingle thread mode\n"
+            "\t-h\tdisplay this message\n"
+            "\t-i\tinetd mode\n"
+            "\t-L\tlookup peer addresses for logs\n"
+            "\t-P\tparse the configuration file and exit\n"
+            "\t-S\tenable single-connection\n"
+            "\t-s\trefuse SENDPASS\n"
+            "\t-t\talso log to /dev/console\n"
+            "\t-v\tdisplay version information\n");
     return;
 }
 
@@ -998,6 +994,5 @@ vers(void)
 #if __STDC__
     fprintf(stdout, "__STDC__\n");
 #endif
-
     return;
 }

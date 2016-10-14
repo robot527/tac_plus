@@ -37,65 +37,63 @@ choose_authen(struct authen_data *data, struct authen_type *type)
     char *cfg_passwd;
 #endif
     char *name = data->NAS_id->username;
-
-    switch (data->action) {
-    case TAC_PLUS_AUTHEN_SENDPASS:
-	return(choose_sendpass(data, type));
-
-    case TAC_PLUS_AUTHEN_SENDAUTH:
-	return(choose_sendauth(data, type));
-
-    case TAC_PLUS_AUTHEN_LOGIN:
-	/* For enabling, enable_fn handles everything. Must be minor
-	 * version zero
-	 */
-	if (data->service == TAC_PLUS_AUTHEN_SVC_ENABLE) {
-	    if (session.version != TAC_PLUS_VER_0) {
-		/* must be version 0 */
-		break;
-	    }
+    switch(data->action)
+    {
+        case TAC_PLUS_AUTHEN_SENDPASS:
+            return(choose_sendpass(data, type));
+        case TAC_PLUS_AUTHEN_SENDAUTH:
+            return(choose_sendauth(data, type));
+        case TAC_PLUS_AUTHEN_LOGIN:
+            /* For enabling, enable_fn handles everything. Must be minor
+             * version zero
+             */
+            if(data->service == TAC_PLUS_AUTHEN_SVC_ENABLE)
+            {
+                if(session.version != TAC_PLUS_VER_0)
+                {
+                    /* must be version 0 */
+                    break;
+                }
 #if defined(SKEY) || defined(ACECLNT)
-	    if (name[0] == '\0')
-		return(CHOOSE_GETUSER);
-	    cfg_passwd = cfg_get_enable_secret(name, TAC_PLUS_RECURSE);
+                if(name[0] == '\0')
+                    return(CHOOSE_GETUSER);
+                cfg_passwd = cfg_get_enable_secret(name, TAC_PLUS_RECURSE);
 #endif
 #ifdef SKEY
-	    if (cfg_passwd != NULL && STREQ(cfg_passwd, "skey")) {
-		type->authen_func = skey_fn;
-		strcpy(type->authen_name, "skey_fn");
-		return(CHOOSE_OK);
-	    }
+                if(cfg_passwd != NULL && STREQ(cfg_passwd, "skey"))
+                {
+                    type->authen_func = skey_fn;
+                    strcpy(type->authen_name, "skey_fn");
+                    return(CHOOSE_OK);
+                }
 #endif
 #ifdef ACECLNT
-	    if (cfg_passwd != NULL && STREQ(cfg_passwd, "aceclnt")) {
-		type->authen_func = aceclnt_fn;
-		strcpy(type->authen_name, "aceclnt_fn");
-		return(CHOOSE_OK);
-	    }
+                if(cfg_passwd != NULL && STREQ(cfg_passwd, "aceclnt"))
+                {
+                    type->authen_func = aceclnt_fn;
+                    strcpy(type->authen_name, "aceclnt_fn");
+                    return(CHOOSE_OK);
+                }
 #endif
-	    type->authen_func = enable_fn;
-	    strcpy(type->authen_name, "enable_fn");
-	    return(CHOOSE_OK);
-	}
-	return(choose_login(data, type));
-
-    case TAC_PLUS_AUTHEN_CHPASS:
-	/* we don't support chpass */
-	return(CHOOSE_FAILED);
-
-    default:
-	break;
+                type->authen_func = enable_fn;
+                strcpy(type->authen_name, "enable_fn");
+                return(CHOOSE_OK);
+            }
+            return(choose_login(data, type));
+        case TAC_PLUS_AUTHEN_CHPASS:
+            /* we don't support chpass */
+            return(CHOOSE_FAILED);
+        default:
+            break;
     }
-
     /* never heard of this lot */
     report(LOG_ERR, "%s: %s %s Illegal packet ver=%d action=%d type=%d",
-	   session.peer,
-	   session.port,
-	   name ? name : "<unknown>",
-	   session.version,
-	   data->action,
-	   type->authen_type);
-
+           session.peer,
+           session.port,
+           name ? name : "<unknown>",
+           session.version,
+           data->action,
+           type->authen_type);
     return(CHOOSE_FAILED);
 }
 
@@ -105,127 +103,123 @@ choose_login(struct authen_data *data, struct authen_type *type)
 {
     char *name = data->NAS_id->username;
     char *cfg_passwd;
-
-    switch(type->authen_type) {
-    case TAC_PLUS_AUTHEN_TYPE_ASCII:
-	if (session.version != TAC_PLUS_VER_0) {
-	    break;
-	}
-
-	if (!name[0]) {
-	    /* request a user name if not already supplied */
-	    return(CHOOSE_GETUSER);
-	}
-
-	/* Does this user require s/key? */
-	cfg_passwd = cfg_get_login_secret(name, TAC_PLUS_RECURSE);
-	if (cfg_passwd && STREQ(cfg_passwd, "skey")) {
-	    if (debug & DEBUG_PASSWD_FLAG)
-		report(LOG_DEBUG, "%s %s: user %s requires skey",
-		       session.peer, session.port, name);
+    switch(type->authen_type)
+    {
+        case TAC_PLUS_AUTHEN_TYPE_ASCII:
+            if(session.version != TAC_PLUS_VER_0)
+            {
+                break;
+            }
+            if(!name[0])
+            {
+                /* request a user name if not already supplied */
+                return(CHOOSE_GETUSER);
+            }
+            /* Does this user require s/key? */
+            cfg_passwd = cfg_get_login_secret(name, TAC_PLUS_RECURSE);
+            if(cfg_passwd && STREQ(cfg_passwd, "skey"))
+            {
+                if(debug & DEBUG_PASSWD_FLAG)
+                    report(LOG_DEBUG, "%s %s: user %s requires skey",
+                           session.peer, session.port, name);
 #ifdef SKEY
-	    type->authen_func = skey_fn;
-	    strcpy(type->authen_name, "skey_fn");
-	    return(CHOOSE_OK);
+                type->authen_func = skey_fn;
+                strcpy(type->authen_name, "skey_fn");
+                return(CHOOSE_OK);
 #else /* SKEY */
-	    report(LOG_ERR,
-		   "%s %s: user %s s/key support has not been compiled in",
-		   name ? name : "<unknown>",
-		   session.peer, session.port);
-	    return(CHOOSE_FAILED);
+                report(LOG_ERR,
+                       "%s %s: user %s s/key support has not been compiled in",
+                       name ? name : "<unknown>",
+                       session.peer, session.port);
+                return(CHOOSE_FAILED);
 #endif	/* SKEY */
-	}
-
-	/* Does this user require aceclnt */
-	cfg_passwd = cfg_get_login_secret(name, TAC_PLUS_RECURSE);
-	if (cfg_passwd && STREQ(cfg_passwd, "aceclnt")) {
-	    if (debug & DEBUG_PASSWD_FLAG)
-		report(LOG_DEBUG, "%s %s: user %s requires aceclnt",
-		       session.peer, session.port, name);
+            }
+            /* Does this user require aceclnt */
+            cfg_passwd = cfg_get_login_secret(name, TAC_PLUS_RECURSE);
+            if(cfg_passwd && STREQ(cfg_passwd, "aceclnt"))
+            {
+                if(debug & DEBUG_PASSWD_FLAG)
+                    report(LOG_DEBUG, "%s %s: user %s requires aceclnt",
+                           session.peer, session.port, name);
 #ifdef ACECLNT
-	    type->authen_func = aceclnt_fn;
-	    strcpy(type->authen_name, "aceclnt_fn");
-	    return(CHOOSE_OK);
+                type->authen_func = aceclnt_fn;
+                strcpy(type->authen_name, "aceclnt_fn");
+                return(CHOOSE_OK);
 #else /* ACECLNT */
-	    report(LOG_ERR,
-		   "%s %s: user %s aceclnt support has not been compiled in",
-		   name ? name : "<unknown>",
-		   session.peer, session.port);
-	    return(CHOOSE_FAILED);
+                report(LOG_ERR,
+                       "%s %s: user %s aceclnt support has not been compiled in",
+                       name ? name : "<unknown>",
+                       session.peer, session.port);
+                return(CHOOSE_FAILED);
 #endif	/* ACECLNT */
-	}
-
-	/*
-	 * Not an skey or aceclnt user. Must be none, des, cleartext or file
-	 * password
-	 */
-	type->authen_func = default_fn;
-	strcpy(type->authen_name, "default_fn");
-	return(CHOOSE_OK);
-
-    case TAC_PLUS_AUTHEN_TYPE_ARAP:
+            }
+            /*
+             * Not an skey or aceclnt user. Must be none, des, cleartext or file
+             * password
+             */
+            type->authen_func = default_fn;
+            strcpy(type->authen_name, "default_fn");
+            return(CHOOSE_OK);
+        case TAC_PLUS_AUTHEN_TYPE_ARAP:
 #ifndef ARAP_DES
-	/*
-	 * If we have no des code we can't do ARAP via SENDAUTH. We'll
-	 * have to do it via SENDPASS. Return a down-rev reply
-	 * packet and hope the NAS is smart enough to deal with it.
-	 */
-	session.version = TAC_PLUS_VER_0;
-	report(LOG_ERR, "%s %s: user %s DES is unavailable",
-	       name ? name : "<unknown>", session.peer, session.port);
-	return(CHOOSE_FAILED);
+            /*
+             * If we have no des code we can't do ARAP via SENDAUTH. We'll
+             * have to do it via SENDPASS. Return a down-rev reply
+             * packet and hope the NAS is smart enough to deal with it.
+             */
+            session.version = TAC_PLUS_VER_0;
+            report(LOG_ERR, "%s %s: user %s DES is unavailable",
+                   name ? name : "<unknown>", session.peer, session.port);
+            return(CHOOSE_FAILED);
 #endif /* ARAP_DES */
-	/* FALLTHROUGH */
-
+            /* FALLTHROUGH */
 #ifdef MSCHAP
-    case TAC_PLUS_AUTHEN_TYPE_MSCHAP:
+        case TAC_PLUS_AUTHEN_TYPE_MSCHAP:
 #ifndef MSCHAP_DES
-	/*
-	 * If we have no des code we can't do MSCHAP via LOGIN. We'll
-	 * have to do it via SENDPASS. Return a down-rev reply
-	 * packet and hope the NAS is smart enough to deal with it.
-	 */
-	session.version = TAC_PLUS_VER_0;
-	report(LOG_ERR, "%s %s: user %s DES is unavailable",
-	       name ? name : "<unknown>", session.peer, session.port);
-	return(CHOOSE_FAILED);
+            /*
+             * If we have no des code we can't do MSCHAP via LOGIN. We'll
+             * have to do it via SENDPASS. Return a down-rev reply
+             * packet and hope the NAS is smart enough to deal with it.
+             */
+            session.version = TAC_PLUS_VER_0;
+            report(LOG_ERR, "%s %s: user %s DES is unavailable",
+                   name ? name : "<unknown>", session.peer, session.port);
+            return(CHOOSE_FAILED);
 #endif /* MSCHAP_DES */
-	/* FALLTHROUGH */
+            /* FALLTHROUGH */
 #endif /* MSCHAP */
-
-    case TAC_PLUS_AUTHEN_TYPE_PAP:
-    case TAC_PLUS_AUTHEN_TYPE_CHAP:
-	if (session.version == TAC_PLUS_VER_0) {
-	    type->authen_func = default_v0_fn;
-	    strcpy(type->authen_name, "default_v0_fn");
-	    return(CHOOSE_OK);
-	}
-
-	/*
-	 * Version 1 login/[pap|chap|arap].
-	 * The username must be in the initial START packet
-	 */
-	if (!name[0]) {
-	    report(LOG_ERR, "%s %s: No user in START packet for PAP/CHAP/ARAP",
-		   session.peer, session.port);
-	    return(CHOOSE_FAILED);
-	}
-	type->authen_func = default_fn;
-	strcpy(type->authen_name, "default_fn");
-	return(CHOOSE_OK);
-
-    default:
-	break;
+        case TAC_PLUS_AUTHEN_TYPE_PAP:
+        case TAC_PLUS_AUTHEN_TYPE_CHAP:
+            if(session.version == TAC_PLUS_VER_0)
+            {
+                type->authen_func = default_v0_fn;
+                strcpy(type->authen_name, "default_v0_fn");
+                return(CHOOSE_OK);
+            }
+            /*
+             * Version 1 login/[pap|chap|arap].
+             * The username must be in the initial START packet
+             */
+            if(!name[0])
+            {
+                report(LOG_ERR, "%s %s: No user in START packet for PAP/CHAP/ARAP",
+                       session.peer, session.port);
+                return(CHOOSE_FAILED);
+            }
+            type->authen_func = default_fn;
+            strcpy(type->authen_name, "default_fn");
+            return(CHOOSE_OK);
+        default:
+            break;
     }
-
     /* Illegal value combination */
     report(LOG_ERR, "%s: %s %s Illegal packet ver=%d action=%d type=%d",
-	   session.peer,
-	   session.port,
-	   name ? name : "<unknown>",
-	   session.version,
-	   data->action,
-	   type->authen_type);
+           session.peer,
+           session.port,
+           name ? name : "<unknown>",
+           session.version,
+           data->action,
+           type->authen_type);
     return(CHOOSE_FAILED);
 }
 
@@ -233,51 +227,49 @@ static int
 choose_sendauth(struct authen_data *data, struct authen_type *type)
 {
     char *name = data->NAS_id->username;
-
-    switch (type->authen_type) {
+    switch(type->authen_type)
+    {
 #ifdef MSCHAP
-    case TAC_PLUS_AUTHEN_TYPE_MSCHAP:
+        case TAC_PLUS_AUTHEN_TYPE_MSCHAP:
 #ifndef MSCHAP_DES
-	/*
-	 * If we have no des code we can't do MSCHAP via SENDAUTH. We'll
-	 * have to do it via SENDPASS. Return a down-rev reply
-	 * packet and hope the NAS is smart enough to deal with it.
-	 */
-	session.version = TAC_PLUS_VER_0;
-	report(LOG_ERR, "%s %s: user %s DES is unavailable",
-	       name ? name : "<unknown>", session.peer, session.port);
-	return(CHOOSE_FAILED);
+            /*
+             * If we have no des code we can't do MSCHAP via SENDAUTH. We'll
+             * have to do it via SENDPASS. Return a down-rev reply
+             * packet and hope the NAS is smart enough to deal with it.
+             */
+            session.version = TAC_PLUS_VER_0;
+            report(LOG_ERR, "%s %s: user %s DES is unavailable",
+                   name ? name : "<unknown>", session.peer, session.port);
+            return(CHOOSE_FAILED);
 #endif /* MSCHAP_DES */
-	/* FALLTHROUGH */
+            /* FALLTHROUGH */
 #endif /* MSCHAP */
-
-    case TAC_PLUS_AUTHEN_TYPE_CHAP:
-    case TAC_PLUS_AUTHEN_TYPE_PAP:
-	/* Must be minor version 1 */
-	if (session.version != TAC_PLUS_VER_1) {
-	    break;
-	}
-
-	/* The start packet must contain the username */
-	if (!name[0]) {
-	    return(CHOOSE_FAILED);
-	}
-	type->authen_func = sendauth_fn;
-	strcpy(type->authen_name, "sendauth_fn");
-	return(CHOOSE_OK);
-
-    default:
-	break;
+        case TAC_PLUS_AUTHEN_TYPE_CHAP:
+        case TAC_PLUS_AUTHEN_TYPE_PAP:
+            /* Must be minor version 1 */
+            if(session.version != TAC_PLUS_VER_1)
+            {
+                break;
+            }
+            /* The start packet must contain the username */
+            if(!name[0])
+            {
+                return(CHOOSE_FAILED);
+            }
+            type->authen_func = sendauth_fn;
+            strcpy(type->authen_name, "sendauth_fn");
+            return(CHOOSE_OK);
+        default:
+            break;
     }
     /* Illegal value combination */
     report(LOG_ERR, "%s: %s %s Illegal packet ver=%d action=%d type=%d",
-	   session.peer,
-	   session.port,
-	   name ? name : "<unknown>",
-	   session.version,
-	   data->action,
-	   type->authen_type);
-
+           session.peer,
+           session.port,
+           name ? name : "<unknown>",
+           session.version,
+           data->action,
+           type->authen_type);
     return(CHOOSE_FAILED);
 }
 
@@ -286,40 +278,37 @@ static int
 choose_sendpass(struct authen_data *data, struct authen_type *type)
 {
     char *name = data->NAS_id->username;
-
-    switch (type->authen_type) {
-    case TAC_PLUS_AUTHEN_TYPE_CHAP:
+    switch(type->authen_type)
+    {
+        case TAC_PLUS_AUTHEN_TYPE_CHAP:
 #ifdef MSCHAP
-    case TAC_PLUS_AUTHEN_TYPE_MSCHAP:
+        case TAC_PLUS_AUTHEN_TYPE_MSCHAP:
 #endif /* MSCHAP */
-    case TAC_PLUS_AUTHEN_TYPE_PAP:
-    case TAC_PLUS_AUTHEN_TYPE_ARAP:
-	/* must be minor version 0 */
-	if (TAC_PLUS_VER_0 != session.version) {
-	    break;
-	}
-
-	/* We need a username */
-	if (!name[0]) {
-	    return(CHOOSE_GETUSER);
-	}
-
-	type->authen_func = sendpass_fn;
-	strcpy(type->authen_name, "sendpass_fn");
-	return(CHOOSE_OK);
-
-    default:
-	break;
+        case TAC_PLUS_AUTHEN_TYPE_PAP:
+        case TAC_PLUS_AUTHEN_TYPE_ARAP:
+            /* must be minor version 0 */
+            if(TAC_PLUS_VER_0 != session.version)
+            {
+                break;
+            }
+            /* We need a username */
+            if(!name[0])
+            {
+                return(CHOOSE_GETUSER);
+            }
+            type->authen_func = sendpass_fn;
+            strcpy(type->authen_name, "sendpass_fn");
+            return(CHOOSE_OK);
+        default:
+            break;
     }
-
     /* Illegal value combination */
     report(LOG_ERR, "%s: %s %s Illegal packet ver=%d action=%d type=%d",
-	   session.peer,
-	   session.port,
-	   name ? name : "<unknown>",
-	   session.version,
-	   data->action,
-	   type->authen_type);
-
+           session.peer,
+           session.port,
+           name ? name : "<unknown>",
+           session.version,
+           data->action,
+           type->authen_type);
     return(CHOOSE_FAILED);
 }

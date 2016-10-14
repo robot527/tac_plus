@@ -21,7 +21,8 @@
 
 #include "tac_plus.h"
 
-struct entry {
+struct entry
+{
     char *name;
     void *hash;
 };
@@ -36,9 +37,9 @@ calculate_hash(char *name)
     int i;
     int len = strlen(name);
     int hashval = 0;
-
-    for (i = 0; i < len; i++) {
-	hashval += name[i] * (i + 1);
+    for(i = 0; i < len; i++)
+    {
+        hashval += name[i] * (i + 1);
     }
     hashval += name[0];
     hashval = hashval > 0 ? hashval : -hashval;
@@ -51,14 +52,13 @@ hash_lookup(void **hashtab, char *name)
 {
     ENTRY *entry;
     int hashval = calculate_hash(name);
-
     entry = hashtab[hashval % HASH_TAB_SIZE];
-
-    while (entry) {
-	if (STREQ(name, entry->name))
-	    /* Node exists in table. return it */
-	    return(entry);
-	entry = entry->hash;
+    while(entry)
+    {
+        if(STREQ(name, entry->name))
+            /* Node exists in table. return it */
+            return(entry);
+        entry = entry->hash;
     }
     return(NULL);
 }
@@ -69,11 +69,9 @@ hash_add_entry(void **hashtab, struct entry *newentry)
 {
     ENTRY *entry;
     int hashval;
-
     entry = hash_lookup(hashtab, newentry->name);
-    if (entry)
-	return(entry);
-
+    if(entry)
+        return(entry);
     /* Node does not exist in table. Add it */
     hashval = calculate_hash(newentry->name);
     newentry->hash = hashtab[hashval % HASH_TAB_SIZE];
@@ -90,29 +88,31 @@ hash_get_entries(void **hashtab)
     ENTRY *entry;
     void **entries, **p;
     int n, longest;
-
     longest = 0;
     cnt = 0;
-    for (i = 0; i < HASH_TAB_SIZE; i++) {
-	entry = hashtab[i];
-	n = 0;
-	while (entry) {
-	    cnt++;
-	    n++;
-	    entry = entry->hash;
-	}
-	if (n > longest)
-	    longest = n;
+    for(i = 0; i < HASH_TAB_SIZE; i++)
+    {
+        entry = hashtab[i];
+        n = 0;
+        while(entry)
+        {
+            cnt++;
+            n++;
+            entry = entry->hash;
+        }
+        if(n > longest)
+            longest = n;
     }
     cnt++;			/* Add space for NULL entry at end */
-
     p = entries = (void **) tac_malloc(cnt * sizeof(void *));
-    for (i = 0; i < HASH_TAB_SIZE; i++) {
-	entry = hashtab[i];
-	while (entry) {
-	    *p++ = entry;
-	    entry = entry->hash;
-	}
+    for(i = 0; i < HASH_TAB_SIZE; i++)
+    {
+        entry = hashtab[i];
+        while(entry)
+        {
+            *p++ = entry;
+            entry = entry->hash;
+        }
     }
     *p++ = NULL;
     return(entries);
